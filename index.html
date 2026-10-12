@@ -392,6 +392,10 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
 .pc.wild { border: 2px solid var(--amber-fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber-fill) 30%, transparent), 0 2px 4px rgba(0,0,0,.12); }
 .pc em { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
   background: var(--amber-fill); color: #2a1d00; border-radius: 999px; padding: 2px 6px; white-space: nowrap; }
+.updatebar { position: fixed; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 40; max-width: 536px; margin: 0 auto;
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 16px; background: var(--fg); color: var(--bg); font-weight: 700; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.updatebar span { flex: 1; min-width: 0; }
+.updatebar .btn { padding: 9px 16px; font-size: 15px; }
 .pc.back { background: repeating-linear-gradient(45deg, var(--panel) 0 6px, color-mix(in srgb, var(--mint) 35%, var(--panel)) 6px 8px); border: 3px solid #fffdf8; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
 .winbanner.dealing { background: var(--surface); border-color: var(--line); }
 .winbanner.dealing span { color: var(--amber); }
@@ -460,7 +464,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.2.1";
+  const APP_VERSION = "v2.2.2";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -599,8 +603,28 @@ body.is-display .pc i { font-size: 32px; }
     TPDOC.get({ source: "server" }).then(onTP).catch(() => {});
     if (!light) LOBBY.get({ source: "server" }).then(onLobby).catch(() => {});   // skipped on the timer to save database reads
   }
+  // ---- stay on the latest version ----
+  // GitHub Pages lets phones cache the page for ~10 minutes (home-screen apps can hold it longer),
+  // so check for a newer build whenever the page is opened and offer a one-tap update.
+  let newVersion = null;
+  function checkVersion() {
+    fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then((res) => res.text()).then((html) => {
+      const m = html.match(/const APP_VERSION = "(v[\d.]+)"/);
+      if (m && m[1] !== APP_VERSION && m[1] !== newVersion) { newVersion = m[1]; showUpdateBar(); }
+    }).catch(() => {});
+  }
+  function showUpdateBar() {
+    let bar = document.getElementById("updateBar");
+    if (!bar) { bar = document.createElement("div"); bar.id = "updateBar"; bar.className = "updatebar"; document.body.appendChild(bar); }
+    bar.innerHTML = `<span>A new version of Chip Bank is ready (${esc(newVersion)})</span><button class="btn brass" id="updateNow">Update</button>`;
+    document.getElementById("updateNow").onclick = () => { location.replace(location.pathname + "?v=" + Date.now() + location.hash); };
+  }
+  setTimeout(checkVersion, 4000);
+  setInterval(() => { if (document.visibilityState === "visible") checkVersion(); }, 5 * 60000);
+
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
+    checkVersion();
     fs.disableNetwork().then(() => fs.enableNetwork()).then(() => refreshNow(), () => refreshNow());
   });
   window.addEventListener("online", () => refreshNow());
