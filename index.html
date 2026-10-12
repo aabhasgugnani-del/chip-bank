@@ -453,7 +453,7 @@ body.is-display .pc i { font-size: 32px; }
 .felt .center b { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 9vw, 40px); line-height: 1; color: #7ef0b8; }
 .felt .center b.lobby { font-size: 24px; color: #eaf6ef; }
 .felt .center small { font-size: 12px; opacity: .85; }
-.felt .center em { font-style: normal; font-size: 12px; line-height: 1.3; opacity: .8; margin-top: 4px; }
+.felt .center em { font-style: normal; font-size: 12px; line-height: 1.3; opacity: .8; margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .felt .center .turnline { margin-top: 4px; font-family: var(--font-display); font-weight: 800; font-size: 15px; color: #f8c94c; }
 .felt .center .jk { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #f8c94c; margin-top: 2px; }
 .seat { position: absolute; transform: translate(-50%, -50%); width: 84px; display: flex; flex-direction: column; align-items: center; gap: 3px; z-index: 1; }
@@ -481,6 +481,12 @@ body.is-display .pc i { font-size: 32px; }
 .felt.crowd .seat .av { width: 34px; height: 34px; font-size: 15px; border-width: 2px; }
 .felt.crowd .seat .minis { display: none; }
 .felt.crowd .seat .lbl b { font-size: 11px; max-width: 60px; }
+.felt .jokercard { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 6px; }
+.felt .jokercard .pc { width: 46px; height: 64px; border-radius: 6px; transform: rotate(-6deg); border: 2px solid #f8c94c; box-shadow: 0 0 0 4px rgba(248, 201, 76, .35), 0 6px 14px rgba(0,0,0,.35); }
+.felt .jokercard .pc b { font-size: 15px; }
+.felt .jokercard .pc i { font-size: 22px; margin-top: 6px; }
+.felt .jokercard span { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #f8c94c; background: rgba(0,0,0,.35); border-radius: 999px; padding: 2px 8px; }
+.felt.crowd .jokercard .pc { width: 38px; height: 53px; }
 </style>
 </head>
 <body>
@@ -540,7 +546,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.3.1";
+  const APP_VERSION = "v2.3.2";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1139,7 +1145,7 @@ body.is-display .pc i { font-size: 32px; }
     const deck = shuffledDeck();
     const hands = {};
     for (let k = 0; k < 3; k++) order.forEach((u) => (hands[u] = hands[u] || []).push(deck.pop()));
-    const joker = v === "joker" ? deck.pop() : null;
+    const joker = v === "joker" ? deck.pop() : null;   // a random card: the next one off the same shuffled deck
     const n = ((T.hand && T.hand.n) || 0) + 1;
     const boot = Math.max(1, Math.round(Number(T.settings.boot) || 10));
     const p = {};
@@ -1363,9 +1369,10 @@ body.is-display .pc i { font-size: 32px; }
       const last = H.side ? `${nameOf(H.side.from)} asked ${nameOf(H.side.to)} for a sideshow`
         : R ? `${R.winners.map(nameOf).join(" & ")} ${R.winners.length > 1 ? "split" : "won"} the pot`
         : H.log.length ? `${H.log[H.log.length - 1].who ? H.log[H.log.length - 1].who + " " : ""}${H.log[H.log.length - 1].text}` : "";
-      center = `<span class="k">Pot</span><b class="num">${rupee(H.pot)}</b>
+      const jc = H.joker ? parseCard(H.joker) : null;
+      center = `${jc ? `<div class="jokercard">${cardHTML(jc, false, 0, false)}<span>Joker · every ${rn(jc.r)}</span></div>` : ""}
+        <span class="k">Pot</span><b class="num">${rupee(H.pot)}</b>
         <small class="num">Blind ${rupee(H.stake)} · Chaal ${rupee(H.stake * 2)}</small>
-        ${H.joker ? `<span class="jk">Joker ${miniCard(parseCard(H.joker))}</span>` : ""}
         ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
         ${last ? `<em>${esc(last)}</em>` : ""}`;
     } else {
