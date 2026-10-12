@@ -443,6 +443,44 @@ body.is-display .pc i { font-size: 32px; }
 .hostbox input { text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--fg); }
 .pamt.pos { color: var(--good); } .pamt.neg { color: var(--bad); }
 .linkbtn.center { align-self: center; }
+/* ---- the card table ---- */
+.felt { position: relative; width: 100%; max-width: 520px; aspect-ratio: 5 / 6; margin: 26px auto 18px; }  /* room for the top seat's cards and the bottom seat's name */
+.felt .rail { position: absolute; inset: 11% 13%; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 38%, #24805a 0%, #17603f 45%, #0e3f2a 100%);
+  border: 12px solid #6b4426; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 8px 30px rgba(0,0,0,.35), 0 0 0 3px #3e2715, 0 14px 34px rgba(0,0,0,.28); }
+.felt .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54%; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; color: #eaf6ef; }
+.felt .center .k { font-size: 10px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; opacity: .75; }
+.felt .center b { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 9vw, 40px); line-height: 1; color: #7ef0b8; }
+.felt .center b.lobby { font-size: 24px; color: #eaf6ef; }
+.felt .center small { font-size: 12px; opacity: .85; }
+.felt .center em { font-style: normal; font-size: 12px; line-height: 1.3; opacity: .8; margin-top: 4px; }
+.felt .center .turnline { margin-top: 4px; font-family: var(--font-display); font-weight: 800; font-size: 15px; color: #f8c94c; }
+.felt .center .jk { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #f8c94c; margin-top: 2px; }
+.seat { position: absolute; transform: translate(-50%, -50%); width: 84px; display: flex; flex-direction: column; align-items: center; gap: 3px; z-index: 1; }
+.seat .av { position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 19px;
+  background: #fffdf8; color: #17603f; border: 3px solid #fffdf8; box-shadow: 0 3px 8px rgba(0,0,0,.3); }
+.seat.me .av { background: #7ef0b8; border-color: #7ef0b8; color: #06301f; }
+.seat .lbl { display: flex; flex-direction: column; align-items: center; max-width: 100%; background: rgba(10, 20, 15, .78); color: #fff; border-radius: 9px; padding: 2px 7px 3px; line-height: 1.2; }
+.seat .lbl b { font-size: 12px; font-weight: 800; max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat .lbl small { font-size: 10px; opacity: .85; white-space: nowrap; }
+.seat .minis { display: flex; gap: 2px; height: 24px; align-items: flex-end; }
+.mc { width: 17px; height: 24px; border-radius: 3px; background: #fffdf8; color: #16181a; font-size: 9px; font-weight: 800; line-height: 1; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,.35); font-family: var(--font-display); }
+.mc i { font-style: normal; font-size: 9px; }
+.mc.red { color: #c8202f; }
+.mc.back { background: repeating-linear-gradient(45deg, #0e3f2a 0 3px, #2fd194 3px 4px); border: 1.5px solid #fffdf8; }
+.felt .center .mc { width: 20px; height: 28px; font-size: 10px; }
+.seat .dpuck { position: absolute; right: -7px; bottom: -4px; width: 19px; height: 19px; border-radius: 50%; background: #fff; color: #111; font-style: normal; font-size: 10px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.4); font-family: var(--font-body); }
+.seat.turn .av { border-color: #f8c94c; box-shadow: 0 0 0 4px rgba(248, 201, 76, .45), 0 3px 8px rgba(0,0,0,.3); animation: turnpulse 1.4s ease-in-out infinite; }
+@keyframes turnpulse { 50% { box-shadow: 0 0 0 9px rgba(248, 201, 76, .12), 0 3px 8px rgba(0,0,0,.3); } }
+@media (prefers-reduced-motion: reduce) { .seat.turn .av { animation: none; } }
+.seat.out { opacity: .45; }
+.seat.waiting { opacity: .7; }
+.seat.won .av { border-color: #7ef0b8; box-shadow: 0 0 0 5px rgba(126, 240, 184, .5), 0 3px 8px rgba(0,0,0,.3); }
+.seat.won .lbl { background: #12a06a; }
+.felt.crowd .seat { width: 64px; }
+.felt.crowd .seat .av { width: 34px; height: 34px; font-size: 15px; border-width: 2px; }
+.felt.crowd .seat .minis { display: none; }
+.felt.crowd .seat .lbl b { font-size: 11px; max-width: 60px; }
 </style>
 </head>
 <body>
@@ -502,7 +540,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.3.0";
+  const APP_VERSION = "v2.3.1";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1049,7 +1087,7 @@ body.is-display .pc i { font-size: 32px; }
     const seq = Math.max(Date.now(), lastLocalSeq + 1); lastLocalSeq = seq;
     const m = Object.assign({ seq, type, n: T && T.hand ? T.hand.n : 0, ts: Date.now() }, extra || {});
     myPending = seq; render();
-    if (isDealer()) { dealerMove(user.uid, m); return; }
+    if (isDealer()) { dealerMove(user.uid, m); myPending = 0; render(); return; }   // applied right here; no round trip to wait for
     MOVES.doc(user.uid).set(m).catch(() => { myPending = 0; render(); toast("Couldn't send that. Check your connection."); });
     setTimeout(() => { if (myPending === seq) { myPending = 0; render(); } }, 15000);
   }
@@ -1271,29 +1309,13 @@ body.is-display .pc i { font-size: 32px; }
 
     if (H) {
       const R = H.result;
-      h += `<div class="tpgpot card">
-        <div><span class="k">Pot</span><span class="v num">${rupee(H.pot)}</span></div>
-        <div><span class="k">Blind / Chaal</span><span class="v2 num">${rupee(H.stake)} / ${rupee(H.stake * 2)}</span></div>
-        <div><span class="k">Hand</span><span class="v2 num">${H.n}${H.variant !== "classic" ? " · " + esc(TP_VARIANTS[H.variant].name) : ""}</span></div>
-      </div>`;
-      if (H.joker) h += `<div class="jokerline">${cardHTML(parseCard(H.joker), false, 0, false)}<div><b>Joker: every ${rn(parseCard(H.joker).r)}</b><small>Counts as any card.</small></div></div>`;
+      h += tableHTML(t, H);
       if (R) h += resultHTML(H, R);
-      h += `<div class="card tpgseats">` + H.order.map((u) => {
-        const p = H.p[u];
-        const isMe = u === user.uid;
-        const status = p.out ? `<span class="chip out">Packed</span>` : p.seen ? `<span class="chip seen">Seen</span>` : `<span class="chip blind">Blind${p.blindTurns ? " ×" + p.blindTurns : ""}</span>`;
-        const turn = !R && H.turn === u;
-        return `<div class="tpgseat ${turn ? "turn" : ""} ${p.out ? "gone" : ""}">
-          <div class="who"><b>${esc(nameOf(u))}${isMe ? ` <span class="tag">You</span>` : ""}${t.seats[t.dealer] && t.seats[t.dealer].uid === u ? ` <span class="tag">Dealer</span>` : ""}</b>
-          <small class="num">In for ${rupee(p.put)}${R ? ` · ${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net)).replace("−", "")}` : ""}</small></div>
-          ${turn ? `<span class="chip turnchip">${H.side ? "Sideshow" : "To act"}</span>` : ""}${status}
-        </div>`;
-      }).join("") + `</div>`;
       if (H.p[user.uid]) h += myArea(t, H);
       h += `<details class="history" ${R ? "" : "open"}><summary>What happened</summary>` + H.log.slice().reverse().slice(0, 14).map((l) =>
         `<div class="hgame"><span class="num">${fmtTime(l.t)}</span> · ${l.who ? `<b>${esc(l.who)}</b> ` : ""}${esc(l.text)}</div>`).join("") + `</details>`;
     } else if (t.seats.length) {
-      h += `<div class="empty"><strong>${t.seats.length} at the table</strong>${dealer ? "Deal when everyone has sat down." : "Waiting for the host to deal."}</div>`;
+      h += tableHTML(t, null);
     }
 
     if (t.seats.length) {
@@ -1307,6 +1329,50 @@ body.is-display .pc i { font-size: 32px; }
       if (seated && (!H || H.result || !H.p[user.uid] || H.p[user.uid].out)) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
     }
     return h + `</section>`;
+  }
+
+  // The table: an oval with everyone seated in playing order, clockwise, and you at the bottom.
+  const miniCard = (c) => `<span class="mc ${c.s === "H" || c.s === "D" ? "red" : ""}">${rn(c.r)}<i>${SUIT[c.s]}</i></span>`;
+  function tableHTML(t, H) {
+    const R = H && H.result;
+    let seats = t.seats.map((x) => x.uid);
+    const mine = user ? seats.indexOf(user.uid) : -1;
+    if (mine > 0) seats = seats.slice(mine).concat(seats.slice(0, mine));
+    else if (mine < 0 && H) { const f = seats.indexOf(H.order[0]); if (f > 0) seats = seats.slice(f).concat(seats.slice(0, f)); }
+    const n = seats.length;
+    const dealerUid = t.seats[t.dealer] ? t.seats[t.dealer].uid : null;
+    const seatHTML = seats.map((u, i) => {
+      const ang = (90 + (i * 360) / n) * Math.PI / 180;
+      const x = 50 + 41 * Math.cos(ang), y = 50 + 41 * Math.sin(ang);
+      const p = H && H.p[u];
+      const turn = H && !R && H.turn === u;
+      const won = R && R.winners.includes(u);
+      const shown = R && R.shown && R.shown[u];
+      const status = !H ? "" : !p ? "Next hand" : p.out ? "Packed" : p.seen ? "Seen" : "Blind";
+      const money = !p ? "" : R ? `${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net))}` : rupee(p.put);
+      const minis = shown ? shown.cards.map(parseCard).map(miniCard).join("") : p && !p.out ? `<span class="mc back"></span><span class="mc back"></span><span class="mc back"></span>` : "";
+      const nm = nameOf(u);
+      return `<div class="seat ${turn ? "turn" : ""} ${p && p.out ? "out" : ""} ${won ? "won" : ""} ${user && u === user.uid ? "me" : ""} ${H && !p ? "waiting" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
+        <div class="minis">${minis}</div>
+        <div class="av">${esc((nm[0] || "?").toUpperCase())}${u === dealerUid ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="lbl"><b>${esc(nm)}</b>${status || money ? `<small class="num">${[status, money].filter(Boolean).join(" · ")}</small>` : ""}</div>
+      </div>`;
+    }).join("");
+    let center;
+    if (H) {
+      const last = H.side ? `${nameOf(H.side.from)} asked ${nameOf(H.side.to)} for a sideshow`
+        : R ? `${R.winners.map(nameOf).join(" & ")} ${R.winners.length > 1 ? "split" : "won"} the pot`
+        : H.log.length ? `${H.log[H.log.length - 1].who ? H.log[H.log.length - 1].who + " " : ""}${H.log[H.log.length - 1].text}` : "";
+      center = `<span class="k">Pot</span><b class="num">${rupee(H.pot)}</b>
+        <small class="num">Blind ${rupee(H.stake)} · Chaal ${rupee(H.stake * 2)}</small>
+        ${H.joker ? `<span class="jk">Joker ${miniCard(parseCard(H.joker))}</span>` : ""}
+        ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
+        ${last ? `<em>${esc(last)}</em>` : ""}`;
+    } else {
+      center = `<b class="lobby">${n} seated</b><small>${isDealer() ? (n < 2 ? "Waiting for players to sit down" : "Deal when everyone is in") : "Waiting for the host to deal"}</small>`;
+    }
+    return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="Card table with ${n} players">
+      <div class="rail"></div><div class="center">${center}</div>${seatHTML}</div>`;
   }
 
   function myArea(t, H) {
