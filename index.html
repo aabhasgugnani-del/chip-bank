@@ -460,7 +460,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.2.0";
+  const APP_VERSION = "v2.2.1";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -617,7 +617,7 @@ body.is-display .pc i { font-size: 32px; }
     classic: { name: "Classic", desc: "Highest hand wins: Trail, Pure sequence, Sequence, Colour, Pair, High card." },
     joker: { name: "Joker", desc: "One card is drawn face up as the joker. Every card of that rank in a hand counts as anything." },
     muflis: { name: "Muflis", desc: "Lowest hand wins. The full ranking is turned upside down." },
-    kinglittle: { name: "King Little", desc: "All Kings and the lowest card in each hand are jokers and count as anything." },
+    kinglittle: { name: "King Little", desc: "All Kings and the lowest card in each hand are jokers and count as anything. If the lowest rank appears twice, both are jokers." },
   };
   const RN = { 14: "A", 13: "K", 12: "Q", 11: "J" };
   const rn = (r) => RN[r] || String(r);
@@ -655,10 +655,10 @@ body.is-display .pc i { font-size: 32px; }
   function wildFlags(cards, variant, joker) {
     if (variant === "joker" && joker) { const jr = parseCard(joker).r; return cards.map((c) => c.r === jr); }
     if (variant === "kinglittle") {
-      const flags = cards.map((c) => c.r === 13);
-      const rest = cards.map((c, i) => ({ c, i })).filter((x) => !flags[x.i]);
-      if (rest.length) { const low = rest.reduce((m, x) => (x.c.r < m.c.r ? x : m)); flags[low.i] = true; }
-      return flags;
+      // Kings are jokers, and so is every card of the lowest rank among the rest (4-4-6: both 4s).
+      const others = cards.filter((c) => c.r !== 13);
+      const low = others.length ? Math.min(...others.map((c) => c.r)) : null;
+      return cards.map((c) => c.r === 13 || c.r === low);
     }
     return cards.map(() => false);
   }
