@@ -342,7 +342,8 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
 
 /* ---- teen patti ---- */
 .tabs button { max-width: 200px; }
-.livetabs { margin-top: 14px; }
+.livetabs { margin-top: 14px; grid-template-columns: repeat(3, 1fr); }
+.livetabs button { font-size: 14px; padding-inline: 4px; }
 .tp { gap: 14px; }
 .tpsetup { display: flex; flex-direction: column; gap: 6px; }
 .tpvar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 10px 16px; font-weight: 800; font-family: var(--font-display); font-size: 18px; }
@@ -406,6 +407,42 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
 body.is-display .tp { max-width: 900px; margin-inline: auto; width: 100%; }
 body.is-display .pc { width: 62px; height: 86px; }
 body.is-display .pc i { font-size: 32px; }
+/* ---- online teen patti ---- */
+.tabs button { max-width: 160px; font-size: 12px; }
+.tpg { gap: 14px; }
+.tpgpot { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr; gap: 8px; padding: 16px 18px; }
+.tpgpot .k { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.tpgpot .v { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1.05; color: var(--mint-text); }
+.tpgpot .v2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.6; }
+.tpgseat { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.tpgseat:last-child { border-bottom: 0; }
+.tpgseat .who { flex: 1; min-width: 0; }
+.tpgseat .who b { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+.tpgseat .who small { display: block; color: var(--muted); font-size: 13px; }
+.tpgseat.turn { background: color-mix(in srgb, var(--amber-fill) 14%, var(--surface)); }
+.tpgseat.gone { opacity: .55; }
+.chip { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 4px 9px; }
+.chip.blind { background: var(--raised); color: var(--muted); }
+.chip.seen { background: var(--good-soft); color: var(--good); }
+.chip.out { background: var(--bad-soft); color: var(--bad); }
+.chip.turnchip { background: var(--amber-fill); color: #2a1d00; }
+.myhand { padding-bottom: 16px; }
+.myhand.myturn { border: 2px solid var(--amber-fill); }
+.tpcards.big { justify-content: center; padding: 18px 16px 6px; gap: 12px; }
+.tpcards.big .pc { width: 74px; height: 104px; }
+.tpcards.big .pc b { font-size: 21px; }
+.tpcards.big .pc i { font-size: 38px; }
+.peek { margin: 10px 16px 0; padding: 10px 12px; border-radius: 14px; background: var(--raised); display: flex; flex-direction: column; gap: 8px; }
+.peek small { color: var(--muted); font-weight: 700; }
+.tpgacts { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 0; }
+.tpgacts .linkbtn { align-self: center; }
+.yourturn { margin: 0; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--amber); }
+.hostbox .hostgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px 0; }
+.hostbox label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.hostbox select { font: inherit; font-size: 16px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--fg); background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 11px 10px; }
+.hostbox input { text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--fg); }
+.pamt.pos { color: var(--good); } .pamt.neg { color: var(--bad); }
+.linkbtn.center { align-self: center; }
 </style>
 </head>
 <body>
@@ -426,6 +463,7 @@ body.is-display .pc i { font-size: 32px; }
     <button id="tabTable" role="tab" aria-selected="true" data-tab="table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.3-.3 4 1.2 4.5 4.3"/></svg>Table</button>
     <button id="tabCash" role="tab" aria-selected="false" data-tab="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>Cash out</button>
     <button id="tabTP" role="tab" aria-selected="false" data-tab="tp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="10" height="14" rx="2" transform="rotate(-10 8 13)"/><rect x="11" y="4" width="10" height="14" rx="2" transform="rotate(8 16 11)"/></svg>Teen Patti</button>
+    <button id="tabPlay" role="tab" aria-selected="false" data-tab="play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.5 6.5h3"/><circle cx="12" cy="13" r="2.6"/></svg>Play</button>
   </nav>
 
   <main id="view"></main>
@@ -464,7 +502,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.2.3";
+  const APP_VERSION = "v2.3.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -537,7 +575,7 @@ body.is-display .pc i { font-size: 32px; }
     } else {
       h = `<p>Live view · ${lastHeard ? "updated " + ago(lastHeard) : "connecting…"} · <button class="linkbtn" data-act="refresh">Refresh</button></p>`;
       if (VIEW !== "display") {
-        if (user && !HOSTS.includes(user.email)) h += `<p>${esc(user.email)} can't host this game · <button class="linkbtn" data-act="signout">Sign out</button></p>`;
+        if (user && !HOSTS.includes(user.email)) h += `<p>Signed in as ${esc(user.email)} · <button class="linkbtn" data-act="signout">Sign out</button></p>`;
         else if (authKnown && !user) h += `<p><button class="linkbtn" data-act="signin">Host sign-in</button></p>`;
       }
     }
@@ -573,9 +611,11 @@ body.is-display .pc i { font-size: 32px; }
       if (next !== mode) { mode = next; render(); }
       else footer();
       reconcile();
+      tpgAuth(u);
     });
     STATE.onSnapshot(onState, () => { if (mode !== "owner") { F = F || { game: null, at: 0 }; render(); } else setSync("Offline, saved on this phone"); });
     tpConnect();
+    tpgConnect();
     HIST.onSnapshot((snap) => {
       history = snap.exists ? (snap.data().games || []) : [];
       if (mode !== "owner" || tab === "table") render();
@@ -912,6 +952,452 @@ body.is-display .pc i { font-size: 32px; }
     render(); toast("You're in. Wait for the host to deal.");
   }
 
+  // ---------- online teen patti: everyone on their own phone ----------
+  // The host's phone is the dealer. It shuffles, keeps the deck, applies every move and judges hands.
+  // Players send moves through their own tpg_moves/{uid} doc. A player's cards are written to their
+  // private tpg_hands/{uid} doc only when they choose to see them, so a blind player can't peek early.
+  const TPG = fs.collection("tpg").doc("table");
+  const SECRET = fs.collection("tpg_secret").doc("deck");
+  const MOVES = fs.collection("tpg_moves");
+  const HANDS = fs.collection("tpg_hands");
+  let T = null;                 // public table state
+  let tLoaded = false;
+  let SEC = null;               // dealer only: { n, hands: { uid: [cards] } }
+  let myHand = null;            // my private doc { n, cards, peek }
+  let myPending = 0;            // seq of my last move that the dealer hasn't applied yet
+  let lastLocalSeq = 0;
+  let moveQueue = [];
+  let handUnsub = null, movesUnsub = null;
+  let lastTurnNotice = null;
+  const tpgDefaults = () => ({ status: "lobby", settings: { boot: 10, blindRounds: 2, potLimit: 0, variant: "classic" }, seats: [], scores: {}, dealer: -1, hand: null, lastSeq: {}, lastErr: null, hostAlive: 0, updatedAt: 0 });
+  const isDealer = () => !!(user && HOSTS.includes(user.email) && VIEW === "app");
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const nameOf = (uid) => { const s = T && T.seats.find((x) => x.uid === uid); return s ? s.name : "Someone"; };
+  const cleanName = (n) => String(n || "").trim().replace(/\s+/g, " ").slice(0, 20);
+
+  function cmpHands(a, b, variant, joker) {
+    const A = a.map(parseCard), B = b.map(parseCard);
+    const c = cmpScore(bestScore(A, wildFlags(A, variant, joker)), bestScore(B, wildFlags(B, variant, joker)));
+    return variant === "muflis" ? -c : c;
+  }
+  function labelOf(cards, variant, joker) {
+    const C = cards.map(parseCard), w = wildFlags(C, variant, joker);
+    return handLabel(bestScore(C, w)) + (w.some(Boolean) ? " (with joker)" : "");
+  }
+
+  // ---- connection ----
+  function tpgConnect() {
+    TPG.onSnapshot((snap) => {
+      if (snap.metadata.hasPendingWrites) return;
+      const r = snap.exists ? snap.data() : null;
+      const prevN = T && T.hand ? T.hand.n : null;
+      if (!isDealer() || !T || (r && (r.updatedAt || 0) > (T.updatedAt || 0))) T = r;
+      if (!tLoaded) { tLoaded = true; const q = moveQueue; moveQueue = []; q.forEach(([u, m]) => dealerMove(u, m)); }
+      if (T && user) {
+        const ls = (T.lastSeq || {})[user.uid] || 0;
+        if (myPending && ls >= myPending) {
+          if (T.lastErr && T.lastErr.uid === user.uid && T.lastErr.seq === myPending) toast(T.lastErr.text);
+          myPending = 0;
+        }
+        const H = T.hand;
+        const seated = T.seats.some((s) => s.uid === user.uid);
+        if (H && H.n !== prevN && prevN !== null && seated && mode !== "owner") liveTab = "play";
+        if (H && !H.result && H.turn === user.uid && lastTurnNotice !== H.n + ":" + H.log.length) {
+          lastTurnNotice = H.n + ":" + H.log.length;
+          if (!document.hidden) { try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} }
+        }
+      }
+      render();
+    }, () => { tLoaded = true; render(); });
+  }
+
+  function tpgAuth(u) {
+    if (handUnsub) { handUnsub(); handUnsub = null; }
+    if (movesUnsub) { movesUnsub(); movesUnsub = null; }
+    myHand = null;
+    if (!u) { render(); return; }
+    handUnsub = HANDS.doc(u.uid).onSnapshot((s) => { myHand = s.exists ? s.data() : null; render(); }, () => {});
+    if (isDealer()) {
+      SECRET.get().then((s) => { if (s.exists && !SEC) SEC = s.data(); }).catch(() => {});
+      movesUnsub = MOVES.onSnapshot((qs) => {
+        qs.docChanges().forEach((ch) => { if (ch.type !== "removed") dealerMove(ch.doc.id, ch.doc.data()); });
+      }, () => {});
+      keepAwake();
+    }
+    render();
+  }
+
+  // Dealer writes go out one at a time, in order.
+  let tChain = Promise.resolve();
+  function commitT() {
+    T.updatedAt = Date.now(); T.hostAlive = Date.now();
+    const snap = clone(T);
+    tChain = tChain.then(() => TPG.set(snap)).catch(() => toast("Couldn't reach the table. Check your connection."));
+    render();
+  }
+  setInterval(() => { if (isDealer() && T && T.seats && T.seats.length && document.visibilityState === "visible") commitT(); }, 25000);
+
+  let wakeLock = null;
+  async function keepAwake() {
+    try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isDealer()) keepAwake(); });
+
+  // ---- sending moves ----
+  function sendMove(type, extra) {
+    if (!user) { toast("Sign in to play"); return; }
+    const seq = Math.max(Date.now(), lastLocalSeq + 1); lastLocalSeq = seq;
+    const m = Object.assign({ seq, type, n: T && T.hand ? T.hand.n : 0, ts: Date.now() }, extra || {});
+    myPending = seq; render();
+    if (isDealer()) { dealerMove(user.uid, m); return; }
+    MOVES.doc(user.uid).set(m).catch(() => { myPending = 0; render(); toast("Couldn't send that. Check your connection."); });
+    setTimeout(() => { if (myPending === seq) { myPending = 0; render(); } }, 15000);
+  }
+
+  // ---- the dealer ----
+  function dealerMove(uid, m) {
+    if (!isDealer()) return;
+    if (!tLoaded) { moveQueue.push([uid, m]); return; }
+    if (!T) T = tpgDefaults();
+    T.lastSeq = T.lastSeq || {};
+    if (!m || !m.seq || m.seq <= (T.lastSeq[uid] || 0)) return;
+    T.lastSeq[uid] = m.seq;
+    const err = applyMove(uid, m);
+    T.lastErr = err ? { uid, seq: m.seq, text: err } : null;
+    if (err && uid === user.uid) toast(err);
+    commitT();
+  }
+
+  function tpgLog(uid, text) {
+    const H = T.hand; if (!H) return;
+    H.log.push({ t: Date.now(), who: uid ? nameOf(uid) : null, text });
+    if (H.log.length > 40) H.log = H.log.slice(-40);
+  }
+  const tpgActive = () => T.hand.order.filter((u) => !T.hand.p[u].out);
+  function nextActive(uid) {
+    const o = T.hand.order, i = o.indexOf(uid);
+    for (let k = 1; k <= o.length; k++) { const u = o[(i + k) % o.length]; if (!T.hand.p[u].out) return u; }
+    return null;
+  }
+  function prevActive(uid) {
+    const o = T.hand.order, i = o.indexOf(uid);
+    for (let k = 1; k < o.length; k++) { const u = o[(i - k + o.length) % o.length]; if (!T.hand.p[u].out) return u; }
+    return null;
+  }
+  function pay(uid, amt) { T.hand.p[uid].put += amt; T.hand.pot += amt; }
+  function writeHand(uid, data) { HANDS.doc(uid).set(data, { merge: true }).catch(() => {}); }
+  function revealTo(uid) { writeHand(uid, { n: T.hand.n, cards: SEC.hands[uid] }); }
+
+  function startHand() {
+    if (!T) T = tpgDefaults();
+    if (T.hand && !T.hand.result) return "Finish the current hand first";
+    if (T.seats.length < 2) return "At least 2 players need to sit down";
+    const v = T.settings.variant || "classic";
+    const max = v === "joker" ? 16 : 17;
+    if (T.seats.length > max) return `One deck fits ${max} players`;
+    T.dealer = (T.dealer + 1) % T.seats.length;
+    const order = [];
+    for (let i = 1; i <= T.seats.length; i++) order.push(T.seats[(T.dealer + i) % T.seats.length].uid);
+    const deck = shuffledDeck();
+    const hands = {};
+    for (let k = 0; k < 3; k++) order.forEach((u) => (hands[u] = hands[u] || []).push(deck.pop()));
+    const joker = v === "joker" ? deck.pop() : null;
+    const n = ((T.hand && T.hand.n) || 0) + 1;
+    const boot = Math.max(1, Math.round(Number(T.settings.boot) || 10));
+    const p = {};
+    order.forEach((u) => { p[u] = { seen: false, out: false, put: boot, blindTurns: 0 }; });
+    T.hand = { n, order, joker, variant: v, p, pot: boot * order.length, stake: boot, turn: order[0], side: null, log: [], result: null };
+    T.status = "hand";
+    SEC = { n, hands };
+    SECRET.set(SEC).catch(() => {});
+    order.forEach((u) => HANDS.doc(u).set({ n, cards: null, peek: null }).catch(() => {}));
+    tpgLog(null, `Hand ${n} dealt. Everyone put in the ${rupee(boot)} boot.`);
+    return null;
+  }
+
+  function applyMove(uid, m) {
+    const H = T.hand;
+    const seat = T.seats.find((s) => s.uid === uid);
+    if (m.type === "join") {
+      const name = cleanName(m.name) || "Player";
+      if (T.seats.some((x) => x.uid !== uid && x.name.toLowerCase() === name.toLowerCase())) return `Someone is already sitting as ${name}. Add your surname or initial.`;
+      if (seat) { seat.name = name; return null; }
+      if (T.seats.length >= 17) return "The table is full";
+      T.seats.push({ uid, name });
+      if (!(uid in T.scores)) T.scores[uid] = 0;
+      return null;
+    }
+    if (m.type === "leave") {
+      if (!seat) return null;
+      if (H && !H.result && H.p[uid] && !H.p[uid].out) packPlayer(uid, "left the table");
+      T.seats = T.seats.filter((s) => s.uid !== uid);
+      return null;
+    }
+    if (!H || H.result) return "No hand is being played right now";
+    const p = H.p[uid];
+    if (!p || p.out) return "You're not in this hand";
+    if (m.n && m.n !== H.n) return "That was for an earlier hand";
+    if (!SEC || SEC.n !== H.n) return "The dealer lost track of this hand's cards. Ask the host to deal again.";
+    if (m.type === "see") {
+      if (!p.seen) { p.seen = true; revealTo(uid); tpgLog(uid, "saw their cards"); }
+      return null;
+    }
+    if (m.type === "pack") { packPlayer(uid, "packed"); return null; }
+    if (H.side) {
+      if (m.type === "sideyes" || m.type === "sideno") {
+        if (uid !== H.side.to) return "That sideshow wasn't asked of you";
+        resolveSide(m.type === "sideyes");
+        return null;
+      }
+      return `Waiting for ${nameOf(H.side.to)} to answer the sideshow`;
+    }
+    if (H.turn !== uid) return `It's ${nameOf(H.turn)}'s turn`;
+    const blindLocked = !p.seen && p.blindTurns >= T.settings.blindRounds;
+    if (blindLocked && m.type !== "pack") return `Blind is over after ${T.settings.blindRounds} rounds. See your cards first.`;
+    const unit = () => (p.seen ? 2 : 1) * H.stake;
+    if (m.type === "chaal" || m.type === "raise") {
+      if (m.type === "raise") H.stake *= 2;
+      const amt = unit();
+      pay(uid, amt);
+      if (!p.seen) p.blindTurns++;
+      tpgLog(uid, (p.seen ? (m.type === "raise" ? "raised, chaal " : "chaal ") : (m.type === "raise" ? "raised blind " : "blind ")) + rupee(amt));
+      if (T.settings.potLimit > 0 && H.pot >= T.settings.potLimit) { showdown(tpgActive(), "Pot limit reached"); return null; }
+      H.turn = nextActive(uid);
+      return null;
+    }
+    if (m.type === "show") {
+      const act = tpgActive();
+      if (act.length !== 2) return "A show is only allowed when two players are left";
+      const amt = unit();
+      pay(uid, amt);
+      tpgLog(uid, `asked for a show (${rupee(amt)})`);
+      showdown(act, "Show");
+      return null;
+    }
+    if (m.type === "sideshow") {
+      if (!p.seen) return "See your cards before asking for a sideshow";
+      if (tpgActive().length < 3) return "With two players left, ask for a show instead";
+      const to = prevActive(uid);
+      if (!H.p[to].seen) return `${nameOf(to)} is still blind, so they can't be asked for a sideshow`;
+      const amt = unit();
+      pay(uid, amt);
+      H.side = { from: uid, to };
+      tpgLog(uid, `asked ${nameOf(to)} for a sideshow (${rupee(amt)})`);
+      return null;
+    }
+    return "That move isn't recognised";
+  }
+
+  function packPlayer(uid, verb) {
+    const H = T.hand;
+    H.p[uid].out = true;
+    tpgLog(uid, verb);
+    const wasTurn = H.turn === uid;
+    if (H.side && (H.side.from === uid || H.side.to === uid)) {
+      const from = H.side.from;
+      H.side = null;
+      if (from !== uid) H.turn = nextActive(from);
+    }
+    const act = tpgActive();
+    if (act.length === 1) { finish(act, "Everyone else packed", []); return; }
+    if (wasTurn) H.turn = nextActive(uid);
+  }
+
+  function resolveSide(accept) {
+    const H = T.hand, { from, to } = H.side;
+    H.side = null;
+    if (!accept) { tpgLog(to, `declined ${nameOf(from)}'s sideshow`); H.turn = nextActive(from); return; }
+    const c = cmpHands(SEC.hands[from], SEC.hands[to], H.variant, H.joker);
+    const loser = c > 0 ? to : from;      // on a tie, the one who asked packs
+    writeHand(from, { peek: { name: nameOf(to), cards: SEC.hands[to] } });
+    writeHand(to, { peek: { name: nameOf(from), cards: SEC.hands[from] } });
+    H.p[loser].out = true;
+    tpgLog(null, `Sideshow between ${nameOf(from)} and ${nameOf(to)}: ${nameOf(loser)} packs`);
+    const act = tpgActive();
+    if (act.length === 1) { finish(act, "Won the sideshow", []); return; }
+    H.turn = nextActive(from);
+  }
+
+  function showdown(uids, reason) {
+    const H = T.hand;
+    let best = [uids[0]];
+    for (const u of uids.slice(1)) {
+      const c = cmpHands(SEC.hands[u], SEC.hands[best[0]], H.variant, H.joker);
+      if (c > 0) best = [u]; else if (c === 0) best.push(u);
+    }
+    finish(best, reason, uids);
+  }
+
+  function finish(winners, reason, shownUids) {
+    const H = T.hand;
+    const share = Math.floor(H.pot / winners.length);
+    const won = {};
+    winners.forEach((w, i) => { won[w] = share + (i === 0 ? H.pot - share * winners.length : 0); });
+    Object.keys(H.p).forEach((u) => {
+      const net = (won[u] || 0) - H.p[u].put;
+      H.p[u].net = net;
+      T.scores[u] = (T.scores[u] || 0) + net;
+    });
+    const shown = {};
+    shownUids.forEach((u) => { shown[u] = { cards: SEC.hands[u], label: labelOf(SEC.hands[u], H.variant, H.joker) }; });
+    H.result = { winners, reason, pot: H.pot, shown };
+    H.turn = null; H.side = null;
+    tpgLog(null, `${winners.map(nameOf).join(" & ")} ${winners.length > 1 ? "split" : "won"} the ${rupee(H.pot)} pot. ${reason}.`);
+    // the hand is over: let everyone see what they were holding
+    H.order.forEach((u) => writeHand(u, { n: H.n, cards: SEC.hands[u] }));
+  }
+
+  // ---- screen ----
+  function viewPlay() {
+    let h = `<section class="tpg">`;
+    if (!user) {
+      return h + `<div class="card tpjoin"><div><b>Play Teen Patti online</b><small>Everyone plays on their own phone and only you see your cards. Sign in with Google so the table knows it's you.</small></div><button class="btn brass" data-act="signin">Sign in to play</button></div></section>`;
+    }
+    const dealer = isDealer();
+    const t = T || tpgDefaults();
+    const H = t.hand;
+    const seated = t.seats.find((s) => s.uid === user.uid);
+    if (!dealer && (!t.hostAlive || Date.now() - t.hostAlive > 70000)) {
+      h += `<div class="check warn"><b>The dealer is offline.</b> The host's phone needs Chip Bank open for the game to run.</div>`;
+    }
+    if (dealer) h += hostControls(t);
+    if (!seated) {
+      const guess = cleanName((me && me.name) || (user.displayName || "").split(" ")[0]);
+      h += `<form class="card tpjoin" id="tpgJoinForm" autocomplete="off"><div><b>Take a seat</b><small>${H && !H.result ? "You'll be dealt in from the next hand." : "Pick the name everyone knows you by."}</small></div>
+        <div class="addrow"><input type="text" id="tpgName" placeholder="Your name" aria-label="Your name" value="${esc(guess)}" list="tpRoster3" enterkeyhint="go">
+        <datalist id="tpRoster3">${DEFAULT_ROSTER.slice().sort(byName).map((n) => `<option value="${esc(n)}"></option>`).join("")}</datalist>
+        <button class="btn brass" type="submit" ${myPending ? "disabled" : ""}>Sit down</button></div></form>`;
+    }
+
+    if (H) {
+      const R = H.result;
+      h += `<div class="tpgpot card">
+        <div><span class="k">Pot</span><span class="v num">${rupee(H.pot)}</span></div>
+        <div><span class="k">Blind / Chaal</span><span class="v2 num">${rupee(H.stake)} / ${rupee(H.stake * 2)}</span></div>
+        <div><span class="k">Hand</span><span class="v2 num">${H.n}${H.variant !== "classic" ? " · " + esc(TP_VARIANTS[H.variant].name) : ""}</span></div>
+      </div>`;
+      if (H.joker) h += `<div class="jokerline">${cardHTML(parseCard(H.joker), false, 0, false)}<div><b>Joker: every ${rn(parseCard(H.joker).r)}</b><small>Counts as any card.</small></div></div>`;
+      if (R) h += resultHTML(H, R);
+      h += `<div class="card tpgseats">` + H.order.map((u) => {
+        const p = H.p[u];
+        const isMe = u === user.uid;
+        const status = p.out ? `<span class="chip out">Packed</span>` : p.seen ? `<span class="chip seen">Seen</span>` : `<span class="chip blind">Blind${p.blindTurns ? " ×" + p.blindTurns : ""}</span>`;
+        const turn = !R && H.turn === u;
+        return `<div class="tpgseat ${turn ? "turn" : ""} ${p.out ? "gone" : ""}">
+          <div class="who"><b>${esc(nameOf(u))}${isMe ? ` <span class="tag">You</span>` : ""}${t.seats[t.dealer] && t.seats[t.dealer].uid === u ? ` <span class="tag">Dealer</span>` : ""}</b>
+          <small class="num">In for ${rupee(p.put)}${R ? ` · ${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net)).replace("−", "")}` : ""}</small></div>
+          ${turn ? `<span class="chip turnchip">${H.side ? "Sideshow" : "To act"}</span>` : ""}${status}
+        </div>`;
+      }).join("") + `</div>`;
+      if (H.p[user.uid]) h += myArea(t, H);
+      h += `<details class="history" ${R ? "" : "open"}><summary>What happened</summary>` + H.log.slice().reverse().slice(0, 14).map((l) =>
+        `<div class="hgame"><span class="num">${fmtTime(l.t)}</span> · ${l.who ? `<b>${esc(l.who)}</b> ` : ""}${esc(l.text)}</div>`).join("") + `</details>`;
+    } else if (t.seats.length) {
+      h += `<div class="empty"><strong>${t.seats.length} at the table</strong>${dealer ? "Deal when everyone has sat down." : "Waiting for the host to deal."}</div>`;
+    }
+
+    if (t.seats.length) {
+      h += `<div class="card"><div class="cardhead"><b>Points this session</b><span>${t.seats.length} seated</span></div>` +
+        t.seats.slice().sort((a, b) => (t.scores[b.uid] || 0) - (t.scores[a.uid] || 0)).map((s) => {
+          const v = t.scores[s.uid] || 0;
+          return `<div class="lrow"><div class="lname"><b>${esc(s.name)}${s.uid === user.uid ? ` <span class="tag">You</span>` : ""}</b></div>
+            <span class="pamt num ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : v < 0 ? "−" : ""}${rupee(Math.abs(v))}</span>
+            ${dealer && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
+        }).join("") + `</div>`;
+      if (seated && (!H || H.result || !H.p[user.uid] || H.p[user.uid].out)) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
+    }
+    return h + `</section>`;
+  }
+
+  function myArea(t, H) {
+    const p = H.p[user.uid];
+    const R = H.result;
+    const mine = myHand && myHand.n === H.n && myHand.cards ? myHand.cards.map(parseCard) : null;
+    const wild = mine ? wildFlags(mine, H.variant, H.joker) : null;
+    const busy = myPending ? "disabled" : "";
+    let h = `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""}">
+      <div class="cardhead"><b>Your cards</b><span>${mine ? esc(labelOf(myHand.cards, H.variant, H.joker)) : p.out ? "Packed" : "Blind"}</span></div>
+      <div class="tpcards big">${mine ? mine.map((c, k) => cardHTML(c, wild[k], 0, false)).join("") : backHTML() + backHTML() + backHTML()}</div>`;
+    if (myHand && myHand.n === H.n && myHand.peek) {
+      const pc = myHand.peek.cards.map(parseCard), pw = wildFlags(pc, H.variant, H.joker);
+      h += `<div class="peek"><small>Sideshow: ${esc(myHand.peek.name)} had ${esc(labelOf(myHand.peek.cards, H.variant, H.joker))}</small><div class="tpcards">${pc.map((c, k) => cardHTML(c, pw[k], 0, false)).join("")}</div></div>`;
+    }
+    let acts = "";
+    if (!R && !p.out) {
+      if (!p.seen) acts += `<button class="btn ghost" data-act="tpgsee" ${busy}>See cards</button>`;
+      if (H.side && H.side.to === user.uid) {
+        acts = `<p class="sheetnote"><b>${esc(nameOf(H.side.from))}</b> wants a sideshow with you. The weaker hand packs; on a tie, they pack.</p>
+          <div class="sharegrid"><button class="btn brass" data-act="tpgsideyes" ${busy}>Accept</button><button class="btn ghost" data-act="tpgsideno" ${busy}>Decline</button></div>`;
+      } else if (H.side && H.side.from === user.uid) {
+        acts += `<p class="sheetnote">Waiting for ${esc(nameOf(H.side.to))} to answer your sideshow…</p>`;
+      } else if (H.turn === user.uid && !H.side) {
+        const blindLocked = !p.seen && p.blindTurns >= t.settings.blindRounds;
+        const unit = (p.seen ? 2 : 1) * H.stake;
+        const left = H.order.filter((u) => !H.p[u].out).length;
+        if (blindLocked) {
+          acts += `<p class="sheetnote">Your ${t.settings.blindRounds} blind rounds are done. See your cards to keep playing.</p>`;
+        } else {
+          acts += `<div class="sharegrid">
+            <button class="btn brass" data-act="tpgchaal" ${busy}>${p.seen ? "Chaal" : "Blind"} ${rupee(unit)}</button>
+            <button class="btn amber" data-act="tpgraise" ${busy}>Raise ${rupee(unit * 2)}</button></div>`;
+          if (left === 2) acts += `<button class="btn ghost" data-act="tpgshow" ${busy}>Show ${rupee(unit)}</button>`;
+          if (p.seen && left >= 3) {
+            const prev = (() => { const o = H.order, i = o.indexOf(user.uid); for (let k = 1; k < o.length; k++) { const u = o[(i - k + o.length) % o.length]; if (!H.p[u].out) return u; } return null; })();
+            const ok = prev && H.p[prev].seen;
+            acts += `<button class="btn ghost" data-act="tpgside" ${busy} ${ok ? "" : "disabled"}>Sideshow with ${esc(nameOf(prev))} ${rupee(unit)}${ok ? "" : " (still blind)"}</button>`;
+          }
+        }
+        acts = `<p class="yourturn">Your turn</p>` + acts;
+      } else {
+        acts += `<p class="sheetnote">Waiting for ${esc(nameOf(H.turn))}…</p>`;
+      }
+      acts += `<button class="linkbtn danger" data-act="tpgpack" ${busy}>${armed === "tpgpack" ? "Tap again to pack" : "Pack"}</button>`;
+    }
+    return h + (acts ? `<div class="tpgacts">${acts}</div>` : "") + `</div>`;
+  }
+
+  function resultHTML(H, R) {
+    return `<div class="winbanner"><span>${R.winners.length > 1 ? "Split pot" : "Winner"} · ${esc(R.reason)}</span>
+      <b>${R.winners.map((u) => esc(nameOf(u))).join(" & ")}</b><small class="num">Won ${rupee(R.pot)}</small></div>` +
+      (Object.keys(R.shown || {}).length ? `<div class="card tphands">` + Object.entries(R.shown).map(([u, s]) => {
+        const C = s.cards.map(parseCard), w = wildFlags(C, H.variant, H.joker);
+        return `<div class="tprow ${R.winners.includes(u) ? "win" : ""}"><span class="rank num">${R.winners.includes(u) ? "★" : "·"}</span>
+          <div class="tpwho"><b>${esc(nameOf(u))}</b><small>${esc(s.label)}</small></div>
+          <div class="tpcards">${C.map((c, k) => cardHTML(c, w[k], 0, false)).join("")}</div></div>`;
+      }).join("") + `</div>` : "");
+  }
+
+  function hostControls(t) {
+    const H = t.hand;
+    const between = !H || H.result;
+    const st = t.settings;
+    return `<div class="card hostbox">
+      <div class="cardhead"><b>Dealer controls</b><span>Your phone runs the game</span></div>
+      <div class="hostgrid">
+        <label for="tpgBoot">Boot<input type="number" inputmode="numeric" id="tpgBoot" value="${st.boot}" min="1" ${between ? "" : "disabled"}></label>
+        <label for="tpgBlind">Blind rounds<input type="number" inputmode="numeric" id="tpgBlind" value="${st.blindRounds}" min="0" max="10" ${between ? "" : "disabled"}></label>
+        <label for="tpgLimit">Pot limit<input type="number" inputmode="numeric" id="tpgLimit" value="${st.potLimit || ""}" placeholder="None" min="0" ${between ? "" : "disabled"}></label>
+        <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}</select></label>
+      </div>
+      <div class="tpadd">
+        ${between ? `<button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">Hand in play. Keep this screen open.</p>`}
+        ${between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
+      </div>
+    </div>`;
+  }
+
+  function tpgSetting(id, val) {
+    if (!isDealer()) return;
+    if (!T) T = tpgDefaults();
+    if (T.hand && !T.hand.result) return;
+    const s = T.settings;
+    if (id === "tpgBoot") { const v = Math.round(Number(val)); if (v > 0) s.boot = v; else return; }
+    if (id === "tpgBlind") { const v = Math.round(Number(val)); if (v >= 0 && v <= 10) s.blindRounds = v; else return; }
+    if (id === "tpgLimit") { const v = Math.round(Number(val)) || 0; s.potLimit = Math.max(0, v); }
+    if (id === "tpgVariant") s.variant = val;
+    commitT();
+  }
+
   // ---------- share sheet ----------
   function openShareSheet() {
     const root = $("#sheetRoot");
@@ -1213,6 +1699,7 @@ body.is-display .pc i { font-size: 32px; }
       <div class="seg livetabs" role="tablist">
         <button data-act="livetab" data-lt="game" aria-selected="${liveTab === "game"}">Game &amp; balances</button>
         <button data-act="livetab" data-lt="tp" aria-selected="${liveTab === "tp"}">Teen Patti</button>
+        <button data-act="livetab" data-lt="play" aria-selected="${liveTab === "play"}">Play online</button>
       </div>`;
   }
 
@@ -1292,8 +1779,8 @@ body.is-display .pc i { font-size: 32px; }
     const a = document.activeElement;
     const keep = a && a.id && (a.tagName === "INPUT") ? { id: a.id, v: a.value, s: a.selectionStart } : null;
     header();
-    if (mode !== "owner") $("#view").innerHTML = liveTab === "tp" ? liveHeadHTML() + viewTP(false) : viewLive();
-    else $("#view").innerHTML = tab === "table" ? viewTable() : tab === "cash" ? viewCash() : viewTP(true);
+    if (mode !== "owner") $("#view").innerHTML = liveTab === "tp" ? liveHeadHTML() + viewTP(false) : liveTab === "play" ? liveHeadHTML() + viewPlay() : viewLive();
+    else $("#view").innerHTML = tab === "table" ? viewTable() : tab === "cash" ? viewCash() : tab === "play" ? viewPlay() : viewTP(true);
     footer();
     if (keep) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (e) {} } }
   }
@@ -1392,6 +1879,7 @@ body.is-display .pc i { font-size: 32px; }
   $("#view").addEventListener("submit", (e) => {
     if (e.target.id === "tpAddForm") { e.preventDefault(); const i = $("#tpAddName"); lobbyAdd(i.value).then(() => { const n = $("#tpAddName"); if (n) { n.value = ""; n.focus(); } }); return; }
     if (e.target.id === "tpJoinForm") { e.preventDefault(); tpJoin($("#tpJoinName").value); return; }
+    if (e.target.id === "tpgJoinForm") { e.preventDefault(); const nm = cleanName($("#tpgName").value); if (!nm) { toast("Type your name to sit down"); return; } sendMove("join", { name: nm }); return; }
     if (e.target.id !== "addForm") return;
     e.preventDefault();
     const inp = $("#addName"); addPlayer(inp.value); const n = $("#addName"); if (n) n.focus();
@@ -1401,6 +1889,18 @@ body.is-display .pc i { font-size: 32px; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
     if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "tpgsee") sendMove("see");
+    else if (act === "tpgchaal") sendMove("chaal");
+    else if (act === "tpgraise") sendMove("raise");
+    else if (act === "tpgshow") sendMove("show");
+    else if (act === "tpgside") sendMove("sideshow");
+    else if (act === "tpgsideyes") sendMove("sideyes");
+    else if (act === "tpgsideno") sendMove("sideno");
+    else if (act === "tpgleave") sendMove("leave");
+    else if (act === "tpgpack") { if (armed !== "tpgpack") return arm("tpgpack"); armed = null; sendMove("pack"); }
+    else if (act === "tpgdeal") { if (!isDealer()) return; const err = startHand(); if (err) toast(err); else { keepAwake(); commitT(); } }
+    else if (act === "tpgreset") { if (armed !== "tpgreset") return arm("tpgreset"); armed = null; if (isDealer() && T) { T.scores = {}; T.seats.forEach((x) => { T.scores[x.uid] = 0; }); commitT(); toast("Points reset"); } }
+    else if (act === "tpgkick") { if (isDealer() && T) { T.seats = T.seats.filter((x) => x.uid !== id); commitT(); } }
     else if (act === "tpskip") { if (TP) revealAt[TP.n] = -Infinity; render(); }
     else if (act === "tpdeal") deal();
     else if (act === "tprm") lobbyRemove(id);
@@ -1472,6 +1972,7 @@ body.is-display .pc i { font-size: 32px; }
   $("#view").addEventListener("change", (e) => {
     if (e.target.id === "buyInSetting") render();
     if (e.target.id === "tpVariant") { S.settings.tpVariant = e.target.value; save(); render(); }
+    if (/^tpg(Boot|Blind|Limit|Variant)$/.test(e.target.id)) tpgSetting(e.target.id, e.target.value);
   });
 
   setInterval(() => {
