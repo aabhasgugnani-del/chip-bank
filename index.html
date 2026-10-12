@@ -392,6 +392,10 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
 .pc.wild { border: 2px solid var(--amber-fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber-fill) 30%, transparent), 0 2px 4px rgba(0,0,0,.12); }
 .pc em { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
   background: var(--amber-fill); color: #2a1d00; border-radius: 999px; padding: 2px 6px; white-space: nowrap; }
+.pc.back { background: repeating-linear-gradient(45deg, var(--panel) 0 6px, color-mix(in srgb, var(--mint) 35%, var(--panel)) 6px 8px); border: 3px solid #fffdf8; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
+.winbanner.dealing { background: var(--surface); border-color: var(--line); }
+.winbanner.dealing span { color: var(--amber); }
+.winbanner .linkbtn { margin-top: 4px; }
 .pc.deal { animation: dealin .42s cubic-bezier(.2,.8,.3,1.2) both; animation-delay: calc(var(--d) * 55ms); }
 @keyframes dealin { from { opacity: 0; transform: translateY(-26px) rotateY(90deg) scale(.85); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .pc.deal { animation: none; } }
@@ -456,7 +460,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.1.0";
+  const APP_VERSION = "v2.2.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -468,6 +472,8 @@ body.is-display .pc i { font-size: 32px; }
   });
   const auth = firebase.auth();
   const fs = firebase.firestore();
+  // Some mobile networks hold the streaming connection open without delivering; let the SDK fall back to long-polling.
+  try { fs.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
   const STATE = fs.collection("chipbank").doc("state");
   const HIST = fs.collection("chipbank").doc("history");
 
@@ -525,7 +531,7 @@ body.is-display .pc i { font-size: 32px; }
       h += user ? `<p>Hosting as ${esc(user.email)} · <button class="linkbtn" data-act="signout">Sign out</button></p>`
                 : `<p><button class="linkbtn" data-act="signin">Sign in to sync</button></p>`;
     } else {
-      h = `<p>Live view · updates on its own</p>`;
+      h = `<p>Live view · ${lastHeard ? "updated " + ago(lastHeard) : "connecting…"} · <button class="linkbtn" data-act="refresh">Refresh</button></p>`;
       if (VIEW !== "display") {
         if (user && !HOSTS.includes(user.email)) h += `<p>${esc(user.email)} can't host this game · <button class="linkbtn" data-act="signout">Sign out</button></p>`;
         else if (authKnown && !user) h += `<p><button class="linkbtn" data-act="signin">Host sign-in</button></p>`;
@@ -564,7 +570,16 @@ body.is-display .pc i { font-size: 32px; }
       else footer();
       reconcile();
     });
-    STATE.onSnapshot((snap) => {
+    STATE.onSnapshot(onState, () => { if (mode !== "owner") { F = F || { game: null, at: 0 }; render(); } else setSync("Offline, saved on this phone"); });
+    tpConnect();
+    HIST.onSnapshot((snap) => {
+      history = snap.exists ? (snap.data().games || []) : [];
+      if (mode !== "owner" || tab === "table") render();
+    }, () => {});
+  }
+
+  function onState(snap) {
+      lastHeard = Date.now();
       if (snap.metadata.hasPendingWrites) return;
       remote = snap.exists ? snap.data() : null;
       remoteKnown = true;
@@ -572,13 +587,28 @@ body.is-display .pc i { font-size: 32px; }
       F = r && r.game ? { game: r.game, buyIn: (r.settings && r.settings.buyIn) || 300, at: r.updatedAt || 0 } : (F || { game: null, buyIn: 300, at: 0 });
       if (mode === "owner") reconcile();
       else render();
-    }, () => { if (mode !== "owner") { F = F || { game: null, at: 0 }; render(); } else setSync("Offline, saved on this phone"); });
-    tpConnect();
-    HIST.onSnapshot((snap) => {
-      history = snap.exists ? (snap.data().games || []) : [];
-      if (mode !== "owner" || tab === "table") render();
-    }, () => {});
   }
+
+  // ---- keeping other phones fresh ----
+  // A locked phone or a backgrounded browser drops the live connection and can take a long time to
+  // notice. When the page comes back, reconnect and fetch straight from the server, and check in
+  // every 20 seconds as a backup while the page is open.
+  let lastHeard = 0;
+  function refreshNow(light) {
+    STATE.get({ source: "server" }).then(onState).catch(() => {});
+    TPDOC.get({ source: "server" }).then(onTP).catch(() => {});
+    if (!light) LOBBY.get({ source: "server" }).then(onLobby).catch(() => {});   // skipped on the timer to save database reads
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    fs.disableNetwork().then(() => fs.enableNetwork()).then(() => refreshNow(), () => refreshNow());
+  });
+  window.addEventListener("online", () => refreshNow());
+  setInterval(() => {
+    if (document.visibilityState === "visible" && Date.now() - lastHeard > 18000) refreshNow(true);
+  }, 20000);
+  setInterval(() => { if (mode !== "owner") footer(); }, 5000);
+  const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 5 ? "just now" : s < 60 ? s + "s ago" : Math.round(s / 60) + "m ago"; };
 
   // ---------- teen patti ----------
   // Open Teen Patti: every hand is dealt face up from one shuffled 52-card deck and judged by the app.
@@ -672,7 +702,6 @@ body.is-display .pc i { font-size: 32px; }
   let TP = null;               // current round { n, variant, dealtAt, joker, hands:[{id,name,cards}] }
   let LOBBY_P = {};            // { id: { name, t } }
   let tpLoaded = false;
-  let seenRound = null;        // round number whose deal animation already played on this screen
   let liveTab = "game";
   let me = null;
   try { me = JSON.parse(localStorage.getItem("chipbank.me") || "null"); } catch (e) {}
@@ -680,18 +709,25 @@ body.is-display .pc i { font-size: 32px; }
   const tpVariant = () => (S.settings && S.settings.tpVariant) || "classic";
 
   function tpConnect() {
-    TPDOC.onSnapshot((snap) => {
+    TPDOC.onSnapshot(onTP, () => {});
+    LOBBY.onSnapshot(onLobby, () => {});
+  }
+  function onTP(snap) {
+      lastHeard = Date.now();
       const prev = TP ? TP.n : null;
       TP = snap.exists ? snap.data() : null;
-      if (tpLoaded && mode !== "owner" && TP && TP.n !== prev) liveTab = "tp";
+      if (tpLoaded && TP && TP.n !== prev && !(TP.n in revealAt)) {
+        // a fresh deal: reveal it card by card, unless it is old news (phone was asleep for a while)
+        revealAt[TP.n] = Date.now() - (TP.dealtAt || 0) < 120000 ? Date.now() : -Infinity;
+        if (mode !== "owner") liveTab = "tp";
+      }
       tpLoaded = true;
       render();
-    }, () => {});
-    LOBBY.onSnapshot((snap) => {
+  }
+  function onLobby(snap) {
+      lastHeard = Date.now();
       LOBBY_P = (snap.exists && snap.data().players) || {};
-      if (me && !LOBBY_P[me.id]) { /* removed by host, or never joined */ }
       render();
-    }, () => {});
   }
 
   function lobbyAdd(name, id) {
@@ -727,9 +763,29 @@ body.is-display .pc i { font-size: 32px; }
     const hands = players.map((p) => ({ id: p.id, name: p.name, cards: [] }));
     for (let k = 0; k < 3; k++) hands.forEach((h) => h.cards.push(deck.pop()));
     const round = { n: ((TP && TP.n) || 0) + 1, variant, dealtAt: Date.now(), joker: variant === "joker" ? deck.pop() : null, hands };
-    TP = round; render();
+    TP = round; revealAt[round.n] = Date.now(); render();
     TPDOC.set(round).catch(() => toast("Couldn't share the deal. Check your connection."));
   }
+
+  // ---- one-by-one reveal ----
+  // Each device starts the reveal when the deal reaches it, so every phone turns cards at the same pace.
+  // A round that was already on screen when the page opened shows in full.
+  const revealAt = {};
+  const revealStep = (total) => Math.max(350, Math.min(900, Math.round(16000 / total)));
+  function revealedCount(round) {
+    const total = round.hands.length * 3 + (round.joker ? 1 : 0);
+    const start = round.n in revealAt ? revealAt[round.n] : -Infinity;
+    if (start === -Infinity) return total;
+    return Math.min(total, Math.floor((Date.now() - start) / revealStep(total)) + 1);
+  }
+  let lastShown = null;
+  setInterval(() => {
+    if (!TP || !TP.hands || !(TP.n in revealAt)) return;
+    const onScreen = mode === "owner" ? tab === "tp" : liveTab === "tp";
+    const k = TP.n + ":" + revealedCount(TP);
+    if (onScreen && k !== lastShown) { lastShown = k; render(); }
+  }, 100);
+  const backHTML = () => `<span class="pc back" aria-label="Face-down card"></span>`;
 
   function cardHTML(c, wild, delay, anim) {
     return `<span class="pc ${c.s === "H" || c.s === "D" ? "red" : ""} ${wild ? "wild" : ""} ${anim ? "deal" : ""}" style="--d:${delay}" role="img" aria-label="${rn(c.r)} of ${SUIT_NAME[c.s]}${wild ? ", joker" : ""}">
@@ -777,26 +833,35 @@ body.is-display .pc i { font-size: 32px; }
     }
 
     if (TP && TP.hands && TP.hands.length) {
-      const rows = judgeRound(TP);
-      const anim = seenRound !== TP.n;
-      const order = new Map(TP.hands.map((x, i) => [x.id, i]));
+      const judged = judgeRound(TP);
       const n = TP.hands.length;
-      const winners = rows.filter((r) => r.win);
+      const jk = TP.joker ? 1 : 0;                 // the joker card turns over first
+      const total = n * 3 + jk;
+      const shown = revealedCount(TP);
+      const done = shown >= total;
+      const order = new Map(TP.hands.map((x, i) => [x.id, i]));
+      // While dealing, keep seats in dealing order; once every card is up, rank them.
+      const rows = done ? judged : judged.slice().sort((x, y) => order.get(x.id) - order.get(y.id));
+      const winners = judged.filter((x) => x.win);
+      const jc = TP.joker ? parseCard(TP.joker) : null;
       h += `<div class="tpround">
         <div class="tphead"><span class="tag">Round ${TP.n}</span><span class="tag">${TP_VARIANTS[TP.variant] ? TP_VARIANTS[TP.variant].name : TP.variant}</span><span class="asof">Dealt ${fmtTime(TP.dealtAt)}</span></div>
         ${TP.variant === "muflis" ? `<p class="sheetnote">Muflis: the lowest hand wins.</p>` : ""}
-        ${TP.joker ? `<div class="jokerline">${cardHTML(parseCard(TP.joker), false, 0, false)}<div><b>Joker: every ${rn(parseCard(TP.joker).r)}</b><small>Any ${rn(parseCard(TP.joker).r)} in a hand counts as any card.</small></div></div>` : ""}
-        <div class="winbanner"><span>${winners.length > 1 ? "Split pot" : "Winner"}</span><b>${winners.map((w) => esc(w.name)).join(" & ")}</b><small>${esc(winners[0].label)}</small></div>
-        <div class="card tphands">` + rows.map((r, i) => {
-          const seat = order.get(r.id);
-          const isMe = me && me.id === r.id;
-          return `<div class="tprow ${r.win ? "win" : ""} ${isMe ? "me" : ""}">
-            <span class="rank num">${i + 1}</span>
-            <div class="tpwho"><b>${esc(r.name)}${isMe ? ` <span class="tag">You</span>` : ""}</b><small>${esc(r.label)}</small></div>
-            <div class="tpcards">${r.cards.map((c, k) => cardHTML(c, r.wild[k], k * n + seat, anim)).join("")}</div>
+        ${jc ? `<div class="jokerline">${shown >= 1 ? cardHTML(jc, false, 0, shown === 1) : backHTML()}<div><b>${shown >= 1 ? "Joker: every " + rn(jc.r) : "Drawing the joker…"}</b><small>${shown >= 1 ? "Any " + rn(jc.r) + " in a hand counts as any card." : "One card decides the joker for this round."}</small></div></div>` : ""}
+        ${done
+          ? `<div class="winbanner"><span>${winners.length > 1 ? "Split pot" : "Winner"}</span><b>${winners.map((w) => esc(w.name)).join(" & ")}</b><small>${esc(winners[0].label)}</small></div>`
+          : `<div class="winbanner dealing"><span>Dealing</span><b class="num">${shown} of ${total} cards</b><button class="linkbtn" data-act="tpskip">Show all now</button></div>`}
+        <div class="card tphands">` + rows.map((x, i) => {
+          const seat = order.get(x.id);
+          const isMe = me && me.id === x.id;
+          const idx = (k) => jk + k * n + seat;    // round-robin, one card per player per pass
+          const full = idx(2) < shown;
+          return `<div class="tprow ${done && x.win ? "win" : ""} ${isMe ? "me" : ""}">
+            <span class="rank num">${done ? i + 1 : seat + 1}</span>
+            <div class="tpwho"><b>${esc(x.name)}${isMe ? ` <span class="tag">You</span>` : ""}</b><small>${full ? esc(x.label) : "&nbsp;"}</small></div>
+            <div class="tpcards">${x.cards.map((c, k) => idx(k) < shown ? cardHTML(c, x.wild[k], 0, idx(k) === shown - 1) : backHTML()).join("")}</div>
           </div>`;
         }).join("") + `</div></div>`;
-      if (anim) setTimeout(() => { seenRound = TP && TP.n; }, 0);
     } else if (!host) {
       h += `<div class="empty"><strong>Waiting for the host to deal</strong>Everyone's three cards appear here, face up, the moment they're dealt.</div>`;
     }
@@ -852,6 +917,7 @@ body.is-display .pc i { font-size: 32px; }
   document.getElementById("shareBtn").addEventListener("click", openShareSheet);
   document.getElementById("foot").addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
+    if (b.dataset.act === "refresh") { refreshNow(); toast("Fetching the latest…"); }
     if (b.dataset.act === "signin") signIn();
     if (b.dataset.act === "signout") auth.signOut();
   });
@@ -1302,6 +1368,7 @@ body.is-display .pc i { font-size: 32px; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
     if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "tpskip") { if (TP) revealAt[TP.n] = -Infinity; render(); }
     else if (act === "tpdeal") deal();
     else if (act === "tprm") lobbyRemove(id);
     else if (act === "tpleave") { if (me) lobbyRemove(me.id); }
