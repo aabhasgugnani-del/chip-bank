@@ -464,7 +464,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.2.2";
+  const APP_VERSION = "v2.2.3";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -880,10 +880,19 @@ body.is-display .pc i { font-size: 32px; }
           const isMe = me && me.id === x.id;
           const idx = (k) => jk + k * n + seat;    // round-robin, one card per player per pass
           const full = idx(2) < shown;
+          // King Little mid-deal: judge jokers only from the cards face up so far, so the badge never
+          // gives away whether a lower card is still coming.
+          const up = x.cards.map((c, k) => idx(k) < shown);
+          let wildNow = x.wild;
+          if (!full && TP.variant === "kinglittle") {
+            const f = wildFlags(x.cards.filter((c, k) => up[k]), "kinglittle");
+            let j = 0;
+            wildNow = x.cards.map((c, k) => (up[k] ? f[j++] : false));
+          }
           return `<div class="tprow ${done && x.win ? "win" : ""} ${isMe ? "me" : ""}">
             <span class="rank num">${done ? i + 1 : seat + 1}</span>
             <div class="tpwho"><b>${esc(x.name)}${isMe ? ` <span class="tag">You</span>` : ""}</b><small>${full ? esc(x.label) : "&nbsp;"}</small></div>
-            <div class="tpcards">${x.cards.map((c, k) => idx(k) < shown ? cardHTML(c, x.wild[k], 0, idx(k) === shown - 1) : backHTML()).join("")}</div>
+            <div class="tpcards">${x.cards.map((c, k) => up[k] ? cardHTML(c, wildNow[k], 0, idx(k) === shown - 1) : backHTML()).join("")}</div>
           </div>`;
         }).join("") + `</div></div>`;
     } else if (!host) {
