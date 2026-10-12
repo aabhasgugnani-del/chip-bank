@@ -340,6 +340,64 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
 .tag { font-family: var(--font-body); font-size: 11px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 4px; vertical-align: 3px; white-space: nowrap; }
 .sync { font-size: 12px; color: var(--muted); text-align: center; margin-top: 28px; }
 
+/* ---- teen patti ---- */
+.tabs button { max-width: 200px; }
+.livetabs { margin-top: 14px; }
+.tp { gap: 14px; }
+.tpsetup { display: flex; flex-direction: column; gap: 6px; }
+.tpvar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 10px 16px; font-weight: 800; font-family: var(--font-display); font-size: 18px; }
+.tpvar select { font: inherit; font-family: var(--font-body); font-size: 16px; font-weight: 700; color: var(--fg); background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; max-width: 60%; }
+.tppad { padding: 14px 20px 0; }
+.tpchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 0; }
+.tpchip { display: inline-flex; align-items: center; gap: 2px; background: color-mix(in srgb, var(--mint) 16%, var(--surface)); color: var(--fg); border-radius: 999px; padding: 4px 4px 4px 13px; font-weight: 700; font-size: 15px; }
+.tpchip button { border: 0; background: transparent; color: var(--muted); width: 28px; height: 28px; border-radius: 50%; font-size: 17px; line-height: 1; }
+.tpadd { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px 16px; }
+.tpadd .linkbtn { align-self: center; }
+.tpjoin { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.tpjoin.in { flex-direction: row; align-items: center; justify-content: space-between; }
+.tpjoin b { display: block; font-family: var(--font-display); font-size: 18px; }
+.tpjoin small { color: var(--muted); font-size: 13px; }
+.tpround { display: flex; flex-direction: column; gap: 12px; }
+.tphead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tphead .tag { margin: 0; font-size: 12px; padding: 3px 10px; }
+.tphead .asof { margin-left: auto; }
+.jokerline { display: flex; align-items: center; gap: 14px; background: var(--amber-soft); border-radius: 16px; padding: 12px 14px; }
+.jokerline b { display: block; font-family: var(--font-display); font-size: 17px; }
+.jokerline small { color: var(--muted); font-size: 13px; }
+.winbanner { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding: 16px; border-radius: 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mint) 22%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--mint) 40%, var(--line)); }
+.winbanner span { font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--mint-text); }
+.winbanner b { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.15; text-wrap: balance; }
+.winbanner small { color: var(--muted); font-size: 14px; font-weight: 600; }
+.tprow { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "rank who" "rank cards"; gap: 6px 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); align-items: center; }
+.tprow:last-child { border-bottom: 0; }
+.tprow .rank { grid-area: rank; align-self: start; }
+.tprow.win { background: color-mix(in srgb, var(--mint) 9%, var(--surface)); }
+.tprow.win .rank { background: var(--mint); color: var(--mint-ink); }
+.tprow.me .tpwho b { color: var(--mint-text); }
+.tpwho { grid-area: who; min-width: 0; }
+.tpwho b { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.tpwho small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
+.tprow.win .tpwho small { color: var(--mint-text); }
+.tpcards { grid-area: cards; display: flex; gap: 8px; }
+@media (min-width: 520px) {
+  .tprow { grid-template-columns: auto 1fr auto; grid-template-areas: "rank who cards"; }
+}
+/* playing cards stay white in both themes, like real ones */
+.pc { position: relative; width: 50px; height: 70px; flex: none; border-radius: 9px; background: #fffdf8; color: #16181a; border: 1px solid #d9d6cf;
+  box-shadow: 0 2px 4px rgba(0,0,0,.12); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.pc.red { color: #c8202f; }
+.pc b { position: absolute; top: 5px; left: 6px; font-family: var(--font-display); font-weight: 800; font-size: 16px; }
+.pc i { font-style: normal; font-size: 26px; margin-top: 8px; }
+.pc.wild { border: 2px solid var(--amber-fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber-fill) 30%, transparent), 0 2px 4px rgba(0,0,0,.12); }
+.pc em { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  background: var(--amber-fill); color: #2a1d00; border-radius: 999px; padding: 2px 6px; white-space: nowrap; }
+.pc.deal { animation: dealin .42s cubic-bezier(.2,.8,.3,1.2) both; animation-delay: calc(var(--d) * 55ms); }
+@keyframes dealin { from { opacity: 0; transform: translateY(-26px) rotateY(90deg) scale(.85); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pc.deal { animation: none; } }
+body.is-display .tp { max-width: 900px; margin-inline: auto; width: 100%; }
+body.is-display .pc { width: 62px; height: 86px; }
+body.is-display .pc i { font-size: 32px; }
 </style>
 </head>
 <body>
@@ -359,6 +417,7 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   <nav class="tabs" role="tablist">
     <button id="tabTable" role="tab" aria-selected="true" data-tab="table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.3-.3 4 1.2 4.5 4.3"/></svg>Table</button>
     <button id="tabCash" role="tab" aria-selected="false" data-tab="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>Cash out</button>
+    <button id="tabTP" role="tab" aria-selected="false" data-tab="tp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="10" height="14" rx="2" transform="rotate(-10 8 13)"/><rect x="11" y="4" width="10" height="14" rx="2" transform="rotate(8 16 11)"/></svg>Teen Patti</button>
   </nav>
 
   <main id="view"></main>
@@ -397,7 +456,7 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.0.0";
+  const APP_VERSION = "v2.1.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -436,7 +495,7 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   // ---------- persistence ----------
   let writing = false, pending = false;
   async function flush() {
-    if (mode !== "owner" || !user) return;
+    if (mode !== "owner" || !user || !remoteKnown) return;
     if (writing) { pending = true; return; }
     writing = true;
     try {
@@ -481,6 +540,21 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
     });
   }
 
+  // The live game in Firestore wins unless this phone holds newer changes (made offline or before signing in).
+  // Never write before the live copy has loaded, or a fresh device would overwrite the game with nothing.
+  let remote = null, remoteKnown = false;
+  function reconcile() {
+    if (mode !== "owner" || !user || !remoteKnown) return;
+    const rAt = (remote && remote.updatedAt) || 0, lAt = S.updatedAt || 0;
+    if (remote && rAt > lAt) {
+      S = Object.assign(blank(), JSON.parse(JSON.stringify(remote)));
+      if (!S.game) S.game = newGame();
+      mergeRoster();
+      try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
+      render();
+    } else if (lAt > rAt) flush();
+  }
+
   function connect() {
     auth.onAuthStateChanged((u) => {
       user = u; authKnown = true;
@@ -488,30 +562,256 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
       const next = isHost && VIEW === "app" ? "owner" : "public";
       if (next !== mode) { mode = next; render(); }
       else footer();
-      if (isHost) flush();
+      reconcile();
     });
     STATE.onSnapshot((snap) => {
-      const r = snap.exists ? snap.data() : null;
-      if (r && r.game) F = { game: r.game, buyIn: (r.settings && r.settings.buyIn) || 300, at: r.updatedAt || 0 };
-      if (mode === "owner") {
-        if (snap.metadata.hasPendingWrites) return;
-        if (!r) { if (S.updatedAt) flush(); return; }
-        if ((r.updatedAt || 0) > (S.updatedAt || 0)) {
-          S = Object.assign(blank(), JSON.parse(JSON.stringify(r)));
-          if (!S.game) S.game = newGame();
-          mergeRoster();
-          try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
-          render();
-        }
-      } else {
-        if (!F) F = { game: null, buyIn: 300, at: 0 };
-        render();
-      }
+      if (snap.metadata.hasPendingWrites) return;
+      remote = snap.exists ? snap.data() : null;
+      remoteKnown = true;
+      const r = remote;
+      F = r && r.game ? { game: r.game, buyIn: (r.settings && r.settings.buyIn) || 300, at: r.updatedAt || 0 } : (F || { game: null, buyIn: 300, at: 0 });
+      if (mode === "owner") reconcile();
+      else render();
     }, () => { if (mode !== "owner") { F = F || { game: null, at: 0 }; render(); } else setSync("Offline, saved on this phone"); });
+    tpConnect();
     HIST.onSnapshot((snap) => {
       history = snap.exists ? (snap.data().games || []) : [];
       if (mode !== "owner" || tab === "table") render();
     }, () => {});
+  }
+
+  // ---------- teen patti ----------
+  // Open Teen Patti: every hand is dealt face up from one shuffled 52-card deck and judged by the app.
+  /* TP-ENGINE-START */
+  const TP_VARIANTS = {
+    classic: { name: "Classic", desc: "Highest hand wins: Trail, Pure sequence, Sequence, Colour, Pair, High card." },
+    joker: { name: "Joker", desc: "One card is drawn face up as the joker. Every card of that rank in a hand counts as anything." },
+    muflis: { name: "Muflis", desc: "Lowest hand wins. The full ranking is turned upside down." },
+    kinglittle: { name: "King Little", desc: "All Kings and the lowest card in each hand are jokers and count as anything." },
+  };
+  const RN = { 14: "A", 13: "K", 12: "Q", 11: "J" };
+  const rn = (r) => RN[r] || String(r);
+  const PLURAL = { 14: "Aces", 13: "Kings", 12: "Queens", 11: "Jacks" };
+  const plural = (r) => PLURAL[r] || r + "s";
+  const SUIT = { S: "♠", H: "♥", D: "♦", C: "♣" };
+  const SUIT_NAME = { S: "spades", H: "hearts", D: "diamonds", C: "clubs" };
+  const parseCard = (c) => ({ r: Number(c.slice(0, -1)), s: c.slice(-1) });
+  const ALL_CARDS = [];
+  for (const s of "SHDC") for (let r = 2; r <= 14; r++) ALL_CARDS.push({ r, s });
+
+  // Score arrays compare left to right. Category: 6 Trail, 5 Pure sequence, 4 Sequence, 3 Colour, 2 Pair, 1 High card.
+  // Sequence strength: A-K-Q = 15, A-2-3 = 14 (second best), K-Q-J = 13 … 4-3-2 = 4.
+  function score3(cards) {
+    const rs = cards.map((c) => c.r).sort((a, b) => b - a);
+    const flush = cards[0].s === cards[1].s && cards[1].s === cards[2].s;
+    if (rs[0] === rs[2]) return [6, rs[0]];
+    let seq = 0;
+    if (rs[0] - 1 === rs[1] && rs[1] - 1 === rs[2]) seq = rs[0] === 14 ? 15 : rs[0];
+    else if (rs[0] === 14 && rs[1] === 3 && rs[2] === 2) seq = 14;
+    if (seq && flush) return [5, seq];
+    if (seq) return [4, seq];
+    if (flush) return [3, rs[0], rs[1], rs[2]];
+    if (rs[0] === rs[1]) return [2, rs[0], rs[2]];
+    if (rs[1] === rs[2]) return [2, rs[1], rs[0]];
+    return [1, rs[0], rs[1], rs[2]];
+  }
+  function cmpScore(a, b) {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const d = (a[i] || 0) - (b[i] || 0);
+      if (d) return d;
+    }
+    return 0;
+  }
+  function wildFlags(cards, variant, joker) {
+    if (variant === "joker" && joker) { const jr = parseCard(joker).r; return cards.map((c) => c.r === jr); }
+    if (variant === "kinglittle") {
+      const flags = cards.map((c) => c.r === 13);
+      const rest = cards.map((c, i) => ({ c, i })).filter((x) => !flags[x.i]);
+      if (rest.length) { const low = rest.reduce((m, x) => (x.c.r < m.c.r ? x : m)); flags[low.i] = true; }
+      return flags;
+    }
+    return cards.map(() => false);
+  }
+  // A joker becomes whatever card makes the best hand.
+  function bestScore(cards, flags) {
+    const nat = cards.filter((c, i) => !flags[i]);
+    if (nat.length === 3) return score3(cards);
+    if (nat.length === 0) return [6, 14];
+    if (nat.length === 1) return [6, nat[0].r];
+    let best = null;
+    for (const c of ALL_CARDS) { const s = score3([nat[0], nat[1], c]); if (!best || cmpScore(s, best) > 0) best = s; }
+    return best;
+  }
+  function seqName(v) { return v === 15 ? "A-K-Q" : v === 14 ? "A-2-3" : `${rn(v)}-${rn(v - 1)}-${rn(v - 2)}`; }
+  function handLabel(sc) {
+    switch (sc[0]) {
+      case 6: return "Trail of " + plural(sc[1]);
+      case 5: return "Pure sequence " + seqName(sc[1]);
+      case 4: return "Sequence " + seqName(sc[1]);
+      case 3: return "Colour, " + rn(sc[1]) + " high";
+      case 2: return "Pair of " + plural(sc[1]);
+      default: return rn(sc[1]) + " high";
+    }
+  }
+  function judgeRound(round) {
+    const low = round.variant === "muflis";
+    const rows = round.hands.map((h) => {
+      const cards = h.cards.map(parseCard);
+      const wild = wildFlags(cards, round.variant, round.joker);
+      const sc = bestScore(cards, wild);
+      return { id: h.id, name: h.name, cards, wild, sc, label: handLabel(sc) + (wild.some(Boolean) ? " (with joker)" : "") };
+    });
+    rows.sort((a, b) => (low ? cmpScore(a.sc, b.sc) : cmpScore(b.sc, a.sc)) || byName(a.name, b.name));
+    rows.forEach((r) => { r.win = cmpScore(r.sc, rows[0].sc) === 0; });
+    return rows;
+  }
+  /* TP-ENGINE-END */
+
+  const TPDOC = fs.collection("chipbank").doc("teenpatti");
+  const LOBBY = fs.collection("chipbank").doc("tp_lobby");
+  let TP = null;               // current round { n, variant, dealtAt, joker, hands:[{id,name,cards}] }
+  let LOBBY_P = {};            // { id: { name, t } }
+  let tpLoaded = false;
+  let seenRound = null;        // round number whose deal animation already played on this screen
+  let liveTab = "game";
+  let me = null;
+  try { me = JSON.parse(localStorage.getItem("chipbank.me") || "null"); } catch (e) {}
+  const lobbyList = () => Object.entries(LOBBY_P).map(([id, p]) => ({ id, name: p.name, t: p.t || 0 })).sort((a, b) => a.t - b.t);
+  const tpVariant = () => (S.settings && S.settings.tpVariant) || "classic";
+
+  function tpConnect() {
+    TPDOC.onSnapshot((snap) => {
+      const prev = TP ? TP.n : null;
+      TP = snap.exists ? snap.data() : null;
+      if (tpLoaded && mode !== "owner" && TP && TP.n !== prev) liveTab = "tp";
+      tpLoaded = true;
+      render();
+    }, () => {});
+    LOBBY.onSnapshot((snap) => {
+      LOBBY_P = (snap.exists && snap.data().players) || {};
+      if (me && !LOBBY_P[me.id]) { /* removed by host, or never joined */ }
+      render();
+    }, () => {});
+  }
+
+  function lobbyAdd(name, id) {
+    name = String(name || "").trim().replace(/\s+/g, " ").slice(0, 24);
+    if (!name) return Promise.resolve(null);
+    const dup = lobbyList().find((p) => p.name.toLowerCase() === name.toLowerCase());
+    if (dup) return Promise.resolve(dup.id);
+    id = id || "p_" + uid();
+    LOBBY_P = Object.assign({}, LOBBY_P, { [id]: { name, t: Date.now() } });
+    render();
+    return LOBBY.set({ players: { [id]: { name, t: Date.now() } } }, { merge: true }).then(() => id)
+      .catch(() => { toast("Couldn't add " + name + ". Check your connection."); return null; });
+  }
+  function lobbyRemove(id) {
+    const next = Object.assign({}, LOBBY_P); delete next[id]; LOBBY_P = next; render();
+    LOBBY.update({ ["players." + id]: firebase.firestore.FieldValue.delete() }).catch(() => {});
+  }
+
+  function shuffledDeck() {
+    const deck = ALL_CARDS.map((c) => c.r + c.s);
+    const rnd = new Uint32Array(deck.length);
+    crypto.getRandomValues(rnd);
+    for (let i = deck.length - 1; i > 0; i--) { const j = rnd[i] % (i + 1); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+    return deck;
+  }
+  function deal() {
+    const players = lobbyList();
+    const variant = tpVariant();
+    if (players.length < 2) { toast("Add at least 2 players to deal"); return; }
+    const max = variant === "joker" ? 16 : 17;
+    if (players.length > max) { toast(`One deck fits ${max} players${variant === "joker" ? " with a joker" : ""}`); return; }
+    const deck = shuffledDeck();
+    const hands = players.map((p) => ({ id: p.id, name: p.name, cards: [] }));
+    for (let k = 0; k < 3; k++) hands.forEach((h) => h.cards.push(deck.pop()));
+    const round = { n: ((TP && TP.n) || 0) + 1, variant, dealtAt: Date.now(), joker: variant === "joker" ? deck.pop() : null, hands };
+    TP = round; render();
+    TPDOC.set(round).catch(() => toast("Couldn't share the deal. Check your connection."));
+  }
+
+  function cardHTML(c, wild, delay, anim) {
+    return `<span class="pc ${c.s === "H" || c.s === "D" ? "red" : ""} ${wild ? "wild" : ""} ${anim ? "deal" : ""}" style="--d:${delay}" role="img" aria-label="${rn(c.r)} of ${SUIT_NAME[c.s]}${wild ? ", joker" : ""}">
+      <b>${rn(c.r)}</b><i>${SUIT[c.s]}</i>${wild ? "<em>Joker</em>" : ""}</span>`;
+  }
+
+  function viewTP(host) {
+    let h = `<section class="tp">`;
+    if (host) {
+      const v = tpVariant();
+      const list = lobbyList();
+      const inLobby = new Set(list.map((p) => p.name.toLowerCase()));
+      const atTable = S.game.players.filter((p) => !p.outAt && !inLobby.has(p.name.toLowerCase()));
+      h += `<div class="tpsetup">
+        <label class="tpvar" for="tpVariant"><span>Variation</span>
+          <select id="tpVariant">${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === v ? "selected" : ""}>${x.name}</option>`).join("")}</select>
+        </label>
+        <p class="sheetnote">${TP_VARIANTS[v].desc}</p>
+      </div>
+      <div class="card tplobby">
+        <div class="cardhead"><b>Players in</b><span class="num">${list.length} joined</span></div>
+        ${list.length ? `<div class="tpchips">${list.map((p) => `<span class="tpchip">${esc(p.name)}<button data-act="tprm" data-id="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button></span>`).join("")}</div>`
+          : `<p class="sheetnote tppad">Friends can tap Join on the shared link, or add people below.</p>`}
+        <div class="tpadd">
+          ${atTable.length ? `<button class="btn ghost" data-act="tpaddtable">Add everyone at the table (${atTable.length})</button>` : ""}
+          <form class="addrow" id="tpAddForm" autocomplete="off">
+            <input type="text" id="tpAddName" placeholder="Add a player by name" aria-label="Player name" list="tpRoster" enterkeyhint="done">
+            <datalist id="tpRoster">${S.roster.slice().sort(byName).map((n) => `<option value="${esc(n)}"></option>`).join("")}</datalist>
+            <button class="btn" type="submit">Add</button>
+          </form>
+          ${list.length ? `<button class="linkbtn" data-act="tpclear">${armed === "tpclear" ? "Tap again to clear everyone" : "Clear all players"}</button>` : ""}
+        </div>
+      </div>
+      <button class="btn brass block" data-act="tpdeal" ${list.length < 2 ? "disabled" : ""}>${TP ? "Deal next round" : "Deal cards"}</button>`;
+    } else {
+      const mine = me && LOBBY_P[me.id];
+      h += mine
+        ? `<div class="card tpjoin in"><div><b>You're in as ${esc(mine.name)}</b><small>Your hand shows up here when the host deals.</small></div><button class="btn ghost" data-act="tpleave">Leave</button></div>`
+        : `<form class="card tpjoin" id="tpJoinForm" autocomplete="off"><div><b>Join the next deal</b><small>Pick your name and wait for the host to deal.</small></div>
+            <div class="addrow"><input type="text" id="tpJoinName" placeholder="Your name" aria-label="Your name" list="tpRoster2" enterkeyhint="go" value="${esc(me ? me.name : "")}">
+            <datalist id="tpRoster2">${DEFAULT_ROSTER.slice().sort(byName).map((n) => `<option value="${esc(n)}"></option>`).join("")}</datalist>
+            <button class="btn brass" type="submit">Join</button></div></form>`;
+      const list = lobbyList();
+      if (list.length) h += `<p class="sheetnote">In for the next deal: ${list.map((p) => esc(p.name)).join(", ")}</p>`;
+    }
+
+    if (TP && TP.hands && TP.hands.length) {
+      const rows = judgeRound(TP);
+      const anim = seenRound !== TP.n;
+      const order = new Map(TP.hands.map((x, i) => [x.id, i]));
+      const n = TP.hands.length;
+      const winners = rows.filter((r) => r.win);
+      h += `<div class="tpround">
+        <div class="tphead"><span class="tag">Round ${TP.n}</span><span class="tag">${TP_VARIANTS[TP.variant] ? TP_VARIANTS[TP.variant].name : TP.variant}</span><span class="asof">Dealt ${fmtTime(TP.dealtAt)}</span></div>
+        ${TP.variant === "muflis" ? `<p class="sheetnote">Muflis: the lowest hand wins.</p>` : ""}
+        ${TP.joker ? `<div class="jokerline">${cardHTML(parseCard(TP.joker), false, 0, false)}<div><b>Joker: every ${rn(parseCard(TP.joker).r)}</b><small>Any ${rn(parseCard(TP.joker).r)} in a hand counts as any card.</small></div></div>` : ""}
+        <div class="winbanner"><span>${winners.length > 1 ? "Split pot" : "Winner"}</span><b>${winners.map((w) => esc(w.name)).join(" & ")}</b><small>${esc(winners[0].label)}</small></div>
+        <div class="card tphands">` + rows.map((r, i) => {
+          const seat = order.get(r.id);
+          const isMe = me && me.id === r.id;
+          return `<div class="tprow ${r.win ? "win" : ""} ${isMe ? "me" : ""}">
+            <span class="rank num">${i + 1}</span>
+            <div class="tpwho"><b>${esc(r.name)}${isMe ? ` <span class="tag">You</span>` : ""}</b><small>${esc(r.label)}</small></div>
+            <div class="tpcards">${r.cards.map((c, k) => cardHTML(c, r.wild[k], k * n + seat, anim)).join("")}</div>
+          </div>`;
+        }).join("") + `</div></div>`;
+      if (anim) setTimeout(() => { seenRound = TP && TP.n; }, 0);
+    } else if (!host) {
+      h += `<div class="empty"><strong>Waiting for the host to deal</strong>Everyone's three cards appear here, face up, the moment they're dealt.</div>`;
+    }
+    return h + `</section>`;
+  }
+
+  async function tpJoin(name) {
+    name = String(name || "").trim();
+    if (!name) { toast("Type your name to join"); return; }
+    const existing = lobbyList().find((p) => p.name.toLowerCase() === name.toLowerCase());
+    const id = existing ? existing.id : await lobbyAdd(name, me && me.name.toLowerCase() === name.toLowerCase() ? me.id : null);
+    if (!id) return;
+    me = { id, name: existing ? existing.name : name };
+    try { localStorage.setItem("chipbank.me", JSON.stringify(me)); } catch (e) {}
+    render(); toast("You're in. Wait for the host to deal.");
   }
 
   // ---------- share sheet ----------
@@ -806,11 +1106,19 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
     return ev.sort((a, b) => b.t - a.t);
   }
 
-  function viewLive() {
-    const live = `<div class="livehead">
+  function liveHeadHTML() {
+    return `<div class="livehead">
         <div class="lh-brand"><span class="lh-logo" aria-hidden="true"></span><span>Chip Bank</span></div>
-        <span class="livepill"><i aria-hidden="true"></i>Live game</span>
+        <span class="livepill"><i aria-hidden="true"></i>Live</span>
+      </div>
+      <div class="seg livetabs" role="tablist">
+        <button data-act="livetab" data-lt="game" aria-selected="${liveTab === "game"}">Game &amp; balances</button>
+        <button data-act="livetab" data-lt="tp" aria-selected="${liveTab === "tp"}">Teen Patti</button>
       </div>`;
+  }
+
+  function viewLive() {
+    const live = liveHeadHTML();
     if (!F) return live + `<section><div class="empty"><strong>Connecting…</strong>Loading tonight's game.</div></section>`;
     const g = F.game;
     if (!g || !g.players.length) {
@@ -881,10 +1189,14 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   }
 
   function render() {
+    // keep whatever the person is typing when a live update re-draws the screen
+    const a = document.activeElement;
+    const keep = a && a.id && (a.tagName === "INPUT") ? { id: a.id, v: a.value, s: a.selectionStart } : null;
     header();
-    if (mode !== "owner") { $("#view").innerHTML = viewLive(); footer(); return; }
-    $("#view").innerHTML = tab === "table" ? viewTable() : viewCash();
+    if (mode !== "owner") $("#view").innerHTML = liveTab === "tp" ? liveHeadHTML() + viewTP(false) : viewLive();
+    else $("#view").innerHTML = tab === "table" ? viewTable() : tab === "cash" ? viewCash() : viewTP(true);
     footer();
+    if (keep) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (e) {} } }
   }
 
   // ---------- buy-in sheet ----------
@@ -979,6 +1291,8 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   });
 
   $("#view").addEventListener("submit", (e) => {
+    if (e.target.id === "tpAddForm") { e.preventDefault(); const i = $("#tpAddName"); lobbyAdd(i.value).then(() => { const n = $("#tpAddName"); if (n) { n.value = ""; n.focus(); } }); return; }
+    if (e.target.id === "tpJoinForm") { e.preventDefault(); tpJoin($("#tpJoinName").value); return; }
     if (e.target.id !== "addForm") return;
     e.preventDefault();
     const inp = $("#addName"); addPlayer(inp.value); const n = $("#addName"); if (n) n.focus();
@@ -987,7 +1301,18 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
   $("#view").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
-    if (act === "signin") signIn();
+    if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "tpdeal") deal();
+    else if (act === "tprm") lobbyRemove(id);
+    else if (act === "tpleave") { if (me) lobbyRemove(me.id); }
+    else if (act === "tpaddtable") {
+      for (const p of S.game.players.filter((x) => !x.outAt)) await lobbyAdd(p.name);
+    }
+    else if (act === "tpclear") {
+      if (armed !== "tpclear") return arm("tpclear");
+      armed = null; LOBBY_P = {}; render(); LOBBY.set({ players: {} }).catch(() => {});
+    }
+    else if (act === "signin") signIn();
     else if (act === "signout") auth.signOut();
     else if (act === "seg") { seg = b.dataset.seg; openLedger = null; render(); }
     else if (act === "clockout") openClockSheet(id);
@@ -1044,7 +1369,10 @@ details.history summary { padding: 12px 0; font-weight: 700; cursor: pointer; }
     }
   });
   $("#view").addEventListener("toggle", (e) => { if (e.target.id === "picker") rosterOpen = e.target.open; }, true);
-  $("#view").addEventListener("change", (e) => { if (e.target.id === "buyInSetting") render(); });
+  $("#view").addEventListener("change", (e) => {
+    if (e.target.id === "buyInSetting") render();
+    if (e.target.id === "tpVariant") { S.settings.tpVariant = e.target.value; save(); render(); }
+  });
 
   setInterval(() => {
     document.querySelectorAll("[data-played]").forEach((el) => { el.textContent = dur(Date.now() - Number(el.dataset.played)); });
