@@ -487,6 +487,12 @@ body.is-display .pc i { font-size: 32px; }
 .felt .jokercard .pc i { font-size: 22px; margin-top: 6px; }
 .felt .jokercard span { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #f8c94c; background: rgba(0,0,0,.35); border-radius: 999px; padding: 2px 8px; }
 .felt.crowd .jokercard .pc { width: 38px; height: 53px; }
+/* ---- more variations ---- */
+.pc.unused { opacity: .35; filter: grayscale(.7); }
+.tprow.lowwin { background: color-mix(in srgb, var(--amber-fill) 12%, var(--surface)); }
+.tprow.lowwin .rank { background: var(--amber-fill); color: #2a1d00; }
+.winbanner .hl { font-style: normal; font-family: var(--font-body); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; vertical-align: 6px; color: var(--mint-text); }
+.felt .center small.vname { color: #f8c94c; font-weight: 800; letter-spacing: .04em; }
 </style>
 </head>
 <body>
@@ -546,7 +552,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.3.2";
+  const APP_VERSION = "v2.4.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -721,12 +727,27 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- teen patti ----------
   // Open Teen Patti: every hand is dealt face up from one shuffled 52-card deck and judged by the app.
   /* TP-ENGINE-START */
+  // Each variation is described by data, so the dealer, the open table and the online table all judge it the same way.
+  //   low: lowest hand wins · cards: cards dealt per player · wildRanks: ranks that are always jokers
+  //   rel: "low"/"high" makes every card of the hand's lowest/highest remaining rank a joker
+  //   drawn: one card drawn face up decides the joker rank · p999: the 999 points game
+  //   split: "highlow" splits the pot between best and worst · stud: first card is dealt face up
   const TP_VARIANTS = {
     classic: { name: "Classic", desc: "Highest hand wins: Trail, Pure sequence, Sequence, Colour, Pair, High card." },
-    joker: { name: "Joker", desc: "One card is drawn face up as the joker. Every card of that rank in a hand counts as anything." },
-    muflis: { name: "Muflis", desc: "Lowest hand wins. The full ranking is turned upside down." },
-    kinglittle: { name: "King Little", desc: "All Kings and the lowest card in each hand are jokers and count as anything. If the lowest rank appears twice, both are jokers." },
+    joker: { name: "Joker", drawn: true, desc: "One card is drawn face up as the joker. Every card of that rank in a hand counts as anything." },
+    muflis: { name: "Muflis", low: true, desc: "Lowest hand wins. The full ranking is turned upside down, so 5-3-2 of mixed suits is the best hand." },
+    kinglittle: { name: "King Little", wildRanks: [13], rel: "low", desc: "All Kings and the lowest card in each hand are jokers and count as anything. If the lowest rank appears twice, both are jokers." },
+    ak47: { name: "AK47", wildRanks: [14, 13, 4, 7], desc: "Every Ace, King, 4 and 7 is a joker and counts as anything." },
+    v1942: { name: "1942", wildRanks: [14, 9, 4, 2], desc: "Every Ace, 9, 4 and 2 is a joker and counts as anything." },
+    lowjoker: { name: "Lowest card joker", rel: "low", desc: "The lowest card in each hand is a joker. If the lowest rank appears twice, both are jokers." },
+    highmuflis: { name: "Highest joker (Muflis)", rel: "high", low: true, desc: "The highest card in each hand is a joker, and the lowest hand wins: 5-3-2 of mixed suits is best. A joker becomes whatever makes your hand lower." },
+    bestof4: { name: "Best of Four", cards: 4, desc: "Everyone gets 4 cards and plays their best 3. The spare card is dimmed." },
+    v999: { name: "999", p999: true, desc: "Ace = 1, 2 to 9 face value, 10 and picture cards = 0. Your cards make the biggest 3-digit number they can; closest to 999 wins." },
+    highlow: { name: "High-Low", split: "highlow", desc: "The best hand and the worst hand split the pot. No sideshows, since a weak hand can still win half." },
+    stud: { name: "Stud", stud: true, desc: "Each player's first card is dealt face up for everyone to see. Normal ranking." },
   };
+  const VAR = (v) => TP_VARIANTS[v] || TP_VARIANTS.classic;
+  const cardsPer = (v) => VAR(v).cards || 3;
   const RN = { 14: "A", 13: "K", 12: "Q", 11: "J" };
   const rn = (r) => RN[r] || String(r);
   const PLURAL = { 14: "Aces", 13: "Kings", 12: "Queens", 11: "Jacks" };
@@ -760,24 +781,36 @@ body.is-display .pc i { font-size: 32px; }
     }
     return 0;
   }
+  // Which of these cards are jokers. Works on a partial hand too (used while cards are being revealed).
   function wildFlags(cards, variant, joker) {
-    if (variant === "joker" && joker) { const jr = parseCard(joker).r; return cards.map((c) => c.r === jr); }
-    if (variant === "kinglittle") {
-      // Kings are jokers, and so is every card of the lowest rank among the rest (4-4-6: both 4s).
-      const others = cards.filter((c) => c.r !== 13);
-      const low = others.length ? Math.min(...others.map((c) => c.r)) : null;
-      return cards.map((c) => c.r === 13 || c.r === low);
+    const V = VAR(variant);
+    const jr = V.drawn && joker ? parseCard(joker).r : null;
+    const flags = cards.map((c) => c.r === jr || (V.wildRanks || []).includes(c.r));
+    if (V.rel) {
+      // every card of the lowest (or highest) rank among the non-joker cards: 4-4-6 makes both 4s jokers
+      const rest = cards.filter((c, i) => !flags[i]).map((c) => c.r);
+      if (rest.length) {
+        const t = V.rel === "low" ? Math.min(...rest) : Math.max(...rest);
+        cards.forEach((c, i) => { if (c.r === t) flags[i] = true; });
+      }
     }
-    return cards.map(() => false);
+    return flags;
   }
-  // A joker becomes whatever card makes the best hand.
-  function bestScore(cards, flags) {
+  // Jokers become whatever card makes the best hand, or the lowest hand when `low` (Muflis-style games).
+  function bestScore(cards, flags, low) {
     const nat = cards.filter((c, i) => !flags[i]);
-    if (nat.length === 3) return score3(cards);
-    if (nat.length === 0) return [6, 14];
-    if (nat.length === 1) return [6, nat[0].r];
+    const w = 3 - nat.length;
+    if (w === 0) return score3(cards);
+    if (!low && w === 3) return [6, 14];
+    if (!low && w === 2) return [6, nat[0].r];
+    if (low && w === 3) return [1, 5, 3, 2];
     let best = null;
-    for (const c of ALL_CARDS) { const s = score3([nat[0], nat[1], c]); if (!best || cmpScore(s, best) > 0) best = s; }
+    const better = (s) => !best || (low ? cmpScore(s, best) < 0 : cmpScore(s, best) > 0);
+    const fill = (hand) => {
+      if (hand.length === 3) { const s = score3(hand); if (better(s)) best = s; return; }
+      for (const c of ALL_CARDS) fill(hand.concat([c]));
+    };
+    fill(nat);
     return best;
   }
   function seqName(v) { return v === 15 ? "A-K-Q" : v === 14 ? "A-2-3" : `${rn(v)}-${rn(v - 1)}-${rn(v - 2)}`; }
@@ -788,22 +821,52 @@ body.is-display .pc i { font-size: 32px; }
       case 4: return "Sequence " + seqName(sc[1]);
       case 3: return "Colour, " + rn(sc[1]) + " high";
       case 2: return "Pair of " + plural(sc[1]);
-      default: return rn(sc[1]) + " high";
+      default: return sc.length === 4 ? `${rn(sc[1])}-${rn(sc[2])}-${rn(sc[3])}, ${rn(sc[1])} high` : rn(sc[1]) + " high";
     }
   }
+  const val999 = (c) => (c.r === 14 ? 1 : c.r >= 10 ? 0 : c.r);
+  // The whole hand judged for its variation: score, which cards are jokers, which cards count (Best of Four), a label.
+  function handEval(cardStrs, variant, joker) {
+    const V = VAR(variant);
+    const cards = cardStrs.map(parseCard);
+    if (V.p999) {
+      const d = cards.map(val999).sort((a, b) => b - a);
+      const num = d[0] * 100 + d[1] * 10 + d[2];
+      return { sc: [num], wild: cards.map(() => false), used: cards.map(() => true), label: "Makes " + String(num).padStart(3, "0") };
+    }
+    const sets = cards.length === 3 ? [[0, 1, 2]] : [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]];
+    let best = null;
+    for (const ix of sets) {
+      const sub = ix.map((i) => cards[i]);
+      const f = wildFlags(sub, variant, joker);
+      const sc = bestScore(sub, f, !!V.low);
+      if (!best || (V.low ? cmpScore(sc, best.sc) < 0 : cmpScore(sc, best.sc) > 0)) best = { sc, ix, f };
+    }
+    const wild = cards.map(() => false), used = cards.map(() => false);
+    best.ix.forEach((i, k) => { used[i] = true; wild[i] = best.f[k]; });
+    return { sc: best.sc, wild, used, label: handLabel(best.sc) + (wild.some(Boolean) ? " (with joker)" : "") };
+  }
+  // Positive when hand a beats hand b in this variation.
+  function cmpHands(a, b, variant, joker) {
+    const c = cmpScore(handEval(a, variant, joker).sc, handEval(b, variant, joker).sc);
+    return VAR(variant).low ? -c : c;
+  }
   function judgeRound(round) {
-    const low = round.variant === "muflis";
+    const V = VAR(round.variant);
     const rows = round.hands.map((h) => {
-      const cards = h.cards.map(parseCard);
-      const wild = wildFlags(cards, round.variant, round.joker);
-      const sc = bestScore(cards, wild);
-      return { id: h.id, name: h.name, cards, wild, sc, label: handLabel(sc) + (wild.some(Boolean) ? " (with joker)" : "") };
+      const e = handEval(h.cards, round.variant, round.joker);
+      return { id: h.id, name: h.name, cards: h.cards.map(parseCard), wild: e.wild, used: e.used, sc: e.sc, label: e.label };
     });
-    rows.sort((a, b) => (low ? cmpScore(a.sc, b.sc) : cmpScore(b.sc, a.sc)) || byName(a.name, b.name));
-    rows.forEach((r) => { r.win = cmpScore(r.sc, rows[0].sc) === 0; });
+    const dir = V.low ? 1 : -1;
+    rows.sort((a, b) => dir * cmpScore(a.sc, b.sc) || byName(a.name, b.name));
+    rows.forEach((r) => { r.win = cmpScore(r.sc, rows[0].sc) === 0; r.lowWin = false; });
+    if (V.split === "highlow" && rows.length > 1) {
+      const last = rows[rows.length - 1].sc;
+      rows.forEach((r) => { r.lowWin = cmpScore(r.sc, last) === 0; });
+    }
     return rows;
   }
-  /* TP-ENGINE-END */
+/* TP-ENGINE-END */
 
   const TPDOC = fs.collection("chipbank").doc("teenpatti");
   const LOBBY = fs.collection("chipbank").doc("tp_lobby");
@@ -865,11 +928,12 @@ body.is-display .pc i { font-size: 32px; }
     const players = lobbyList();
     const variant = tpVariant();
     if (players.length < 2) { toast("Add at least 2 players to deal"); return; }
-    const max = variant === "joker" ? 16 : 17;
+    const per = cardsPer(variant);
+    const max = Math.floor((52 - (variant === "joker" ? 1 : 0)) / per);
     if (players.length > max) { toast(`One deck fits ${max} players${variant === "joker" ? " with a joker" : ""}`); return; }
     const deck = shuffledDeck();
     const hands = players.map((p) => ({ id: p.id, name: p.name, cards: [] }));
-    for (let k = 0; k < 3; k++) hands.forEach((h) => h.cards.push(deck.pop()));
+    for (let k = 0; k < per; k++) hands.forEach((h) => h.cards.push(deck.pop()));
     const round = { n: ((TP && TP.n) || 0) + 1, variant, dealtAt: Date.now(), joker: variant === "joker" ? deck.pop() : null, hands };
     TP = round; revealAt[round.n] = Date.now(); render();
     TPDOC.set(round).catch(() => toast("Couldn't share the deal. Check your connection."));
@@ -881,7 +945,7 @@ body.is-display .pc i { font-size: 32px; }
   const revealAt = {};
   const revealStep = (total) => Math.max(350, Math.min(900, Math.round(16000 / total)));
   function revealedCount(round) {
-    const total = round.hands.length * 3 + (round.joker ? 1 : 0);
+    const total = round.hands.length * (round.hands[0] ? round.hands[0].cards.length : 3) + (round.joker ? 1 : 0);
     const start = round.n in revealAt ? revealAt[round.n] : -Infinity;
     if (start === -Infinity) return total;
     return Math.min(total, Math.floor((Date.now() - start) / revealStep(total)) + 1);
@@ -895,8 +959,8 @@ body.is-display .pc i { font-size: 32px; }
   }, 100);
   const backHTML = () => `<span class="pc back" aria-label="Face-down card"></span>`;
 
-  function cardHTML(c, wild, delay, anim) {
-    return `<span class="pc ${c.s === "H" || c.s === "D" ? "red" : ""} ${wild ? "wild" : ""} ${anim ? "deal" : ""}" style="--d:${delay}" role="img" aria-label="${rn(c.r)} of ${SUIT_NAME[c.s]}${wild ? ", joker" : ""}">
+  function cardHTML(c, wild, delay, anim, extra) {
+    return `<span class="pc ${c.s === "H" || c.s === "D" ? "red" : ""} ${wild ? "wild" : ""} ${anim ? "deal" : ""} ${extra || ""}" style="--d:${delay}" role="img" aria-label="${rn(c.r)} of ${SUIT_NAME[c.s]}${wild ? ", joker" : ""}">
       <b>${rn(c.r)}</b><i>${SUIT[c.s]}</i>${wild ? "<em>Joker</em>" : ""}</span>`;
   }
 
@@ -944,39 +1008,44 @@ body.is-display .pc i { font-size: 32px; }
       const judged = judgeRound(TP);
       const n = TP.hands.length;
       const jk = TP.joker ? 1 : 0;                 // the joker card turns over first
-      const total = n * 3 + jk;
+      const per = TP.hands[0].cards.length;
+      const V = VAR(TP.variant);
+      const total = n * per + jk;
       const shown = revealedCount(TP);
       const done = shown >= total;
       const order = new Map(TP.hands.map((x, i) => [x.id, i]));
       // While dealing, keep seats in dealing order; once every card is up, rank them.
       const rows = done ? judged : judged.slice().sort((x, y) => order.get(x.id) - order.get(y.id));
       const winners = judged.filter((x) => x.win);
+      const lows = judged.filter((x) => x.lowWin);
       const jc = TP.joker ? parseCard(TP.joker) : null;
       h += `<div class="tpround">
         <div class="tphead"><span class="tag">Round ${TP.n}</span><span class="tag">${TP_VARIANTS[TP.variant] ? TP_VARIANTS[TP.variant].name : TP.variant}</span><span class="asof">Dealt ${fmtTime(TP.dealtAt)}</span></div>
-        ${TP.variant === "muflis" ? `<p class="sheetnote">Muflis: the lowest hand wins.</p>` : ""}
+        ${TP.variant !== "classic" ? `<p class="sheetnote">${esc(V.desc)}</p>` : ""}
         ${jc ? `<div class="jokerline">${shown >= 1 ? cardHTML(jc, false, 0, shown === 1) : backHTML()}<div><b>${shown >= 1 ? "Joker: every " + rn(jc.r) : "Drawing the joker…"}</b><small>${shown >= 1 ? "Any " + rn(jc.r) + " in a hand counts as any card." : "One card decides the joker for this round."}</small></div></div>` : ""}
         ${done
-          ? `<div class="winbanner"><span>${winners.length > 1 ? "Split pot" : "Winner"}</span><b>${winners.map((w) => esc(w.name)).join(" & ")}</b><small>${esc(winners[0].label)}</small></div>`
+          ? (V.split === "highlow" && n > 1
+            ? `<div class="winbanner"><span>High-Low · pot split</span><b>${winners.map((w) => esc(w.name)).join(" & ")} <i class="hl">High</i></b><small>${esc(winners[0].label)}</small><b>${lows.map((w) => esc(w.name)).join(" & ")} <i class="hl">Low</i></b><small>${esc(lows[0].label)}</small></div>`
+            : `<div class="winbanner"><span>${winners.length > 1 ? "Split pot" : "Winner"}${V.low ? " · lowest hand" : ""}</span><b>${winners.map((w) => esc(w.name)).join(" & ")}</b><small>${esc(winners[0].label)}</small></div>`)
           : `<div class="winbanner dealing"><span>Dealing</span><b class="num">${shown} of ${total} cards</b><button class="linkbtn" data-act="tpskip">Show all now</button></div>`}
         <div class="card tphands">` + rows.map((x, i) => {
           const seat = order.get(x.id);
           const isMe = me && me.id === x.id;
           const idx = (k) => jk + k * n + seat;    // round-robin, one card per player per pass
-          const full = idx(2) < shown;
+          const full = idx(per - 1) < shown;
           // King Little mid-deal: judge jokers only from the cards face up so far, so the badge never
           // gives away whether a lower card is still coming.
           const up = x.cards.map((c, k) => idx(k) < shown);
           let wildNow = x.wild;
-          if (!full && TP.variant === "kinglittle") {
-            const f = wildFlags(x.cards.filter((c, k) => up[k]), "kinglittle");
+          if (!full && V.rel) {
+            const f = wildFlags(x.cards.filter((c, k) => up[k]), TP.variant, TP.joker);
             let j = 0;
             wildNow = x.cards.map((c, k) => (up[k] ? f[j++] : false));
           }
-          return `<div class="tprow ${done && x.win ? "win" : ""} ${isMe ? "me" : ""}">
+          return `<div class="tprow ${done && x.win ? "win" : ""} ${done && x.lowWin ? "lowwin" : ""} ${isMe ? "me" : ""}">
             <span class="rank num">${done ? i + 1 : seat + 1}</span>
-            <div class="tpwho"><b>${esc(x.name)}${isMe ? ` <span class="tag">You</span>` : ""}</b><small>${full ? esc(x.label) : "&nbsp;"}</small></div>
-            <div class="tpcards">${x.cards.map((c, k) => up[k] ? cardHTML(c, wildNow[k], 0, idx(k) === shown - 1) : backHTML()).join("")}</div>
+            <div class="tpwho"><b>${esc(x.name)}${isMe ? ` <span class="tag">You</span>` : ""}${done && x.lowWin ? ` <span class="tag">Low</span>` : ""}</b><small>${full ? esc(x.label) : "&nbsp;"}</small></div>
+            <div class="tpcards">${x.cards.map((c, k) => up[k] ? cardHTML(c, wildNow[k], 0, idx(k) === shown - 1, full && !x.used[k] ? "unused" : "") : backHTML()).join("")}</div>
           </div>`;
         }).join("") + `</div></div>`;
     } else if (!host) {
@@ -1019,15 +1088,7 @@ body.is-display .pc i { font-size: 32px; }
   const nameOf = (uid) => { const s = T && T.seats.find((x) => x.uid === uid); return s ? s.name : "Someone"; };
   const cleanName = (n) => String(n || "").trim().replace(/\s+/g, " ").slice(0, 20);
 
-  function cmpHands(a, b, variant, joker) {
-    const A = a.map(parseCard), B = b.map(parseCard);
-    const c = cmpScore(bestScore(A, wildFlags(A, variant, joker)), bestScore(B, wildFlags(B, variant, joker)));
-    return variant === "muflis" ? -c : c;
-  }
-  function labelOf(cards, variant, joker) {
-    const C = cards.map(parseCard), w = wildFlags(C, variant, joker);
-    return handLabel(bestScore(C, w)) + (w.some(Boolean) ? " (with joker)" : "");
-  }
+  const labelOf = (cards, variant, joker) => handEval(cards, variant, joker).label;
 
   // ---- connection ----
   function tpgConnect() {
@@ -1137,20 +1198,23 @@ body.is-display .pc i { font-size: 32px; }
     if (T.hand && !T.hand.result) return "Finish the current hand first";
     if (T.seats.length < 2) return "At least 2 players need to sit down";
     const v = T.settings.variant || "classic";
-    const max = v === "joker" ? 16 : 17;
+    const per = cardsPer(v);
+    const max = Math.floor((52 - (v === "joker" ? 1 : 0)) / per);
     if (T.seats.length > max) return `One deck fits ${max} players`;
     T.dealer = (T.dealer + 1) % T.seats.length;
     const order = [];
     for (let i = 1; i <= T.seats.length; i++) order.push(T.seats[(T.dealer + i) % T.seats.length].uid);
     const deck = shuffledDeck();
     const hands = {};
-    for (let k = 0; k < 3; k++) order.forEach((u) => (hands[u] = hands[u] || []).push(deck.pop()));
+    for (let k = 0; k < per; k++) order.forEach((u) => (hands[u] = hands[u] || []).push(deck.pop()));
     const joker = v === "joker" ? deck.pop() : null;   // a random card: the next one off the same shuffled deck
     const n = ((T.hand && T.hand.n) || 0) + 1;
     const boot = Math.max(1, Math.round(Number(T.settings.boot) || 10));
     const p = {};
     order.forEach((u) => { p[u] = { seen: false, out: false, put: boot, blindTurns: 0 }; });
-    T.hand = { n, order, joker, variant: v, p, pot: boot * order.length, stake: boot, turn: order[0], side: null, log: [], result: null };
+    // Stud: everyone's first card is dealt face up, so it goes in the public table doc.
+    const open = VAR(v).stud ? Object.fromEntries(order.map((u) => [u, hands[u][0]])) : null;
+    T.hand = { n, order, joker, variant: v, p, pot: boot * order.length, stake: boot, turn: order[0], side: null, log: [], result: null, open };
     T.status = "hand";
     SEC = { n, hands };
     SECRET.set(SEC).catch(() => {});
@@ -1220,6 +1284,7 @@ body.is-display .pc i { font-size: 32px; }
     }
     if (m.type === "sideshow") {
       if (!p.seen) return "See your cards before asking for a sideshow";
+      if (VAR(H.variant).split === "highlow") return "There are no sideshows in High-Low";
       if (tpgActive().length < 3) return "With two players left, ask for a show instead";
       const to = prevActive(uid);
       if (!H.p[to].seen) return `${nameOf(to)} is still blind, so they can't be asked for a sideshow`;
@@ -1264,19 +1329,32 @@ body.is-display .pc i { font-size: 32px; }
 
   function showdown(uids, reason) {
     const H = T.hand;
-    let best = [uids[0]];
-    for (const u of uids.slice(1)) {
-      const c = cmpHands(SEC.hands[u], SEC.hands[best[0]], H.variant, H.joker);
-      if (c > 0) best = [u]; else if (c === 0) best.push(u);
+    const rank = (dir) => {
+      let best = [uids[0]];
+      for (const u of uids.slice(1)) {
+        const c = dir * cmpHands(SEC.hands[u], SEC.hands[best[0]], H.variant, H.joker);
+        if (c > 0) best = [u]; else if (c === 0) best.push(u);
+      }
+      return best;
+    };
+    const high = rank(1);
+    if (VAR(H.variant).split === "highlow" && uids.length > 1) {
+      // half the pot to the best hand, half to the worst (odd rupee goes to the high side)
+      const low = rank(-1), won = {};
+      const give = (list, amt) => { const sh = Math.floor(amt / list.length); list.forEach((u, i) => { won[u] = (won[u] || 0) + sh + (i === 0 ? amt - sh * list.length : 0); }); };
+      give(high, H.pot - Math.floor(H.pot / 2));
+      give(low, Math.floor(H.pot / 2));
+      finish([...new Set(high.concat(low))], reason, uids, won, { high, low });
+      return;
     }
-    finish(best, reason, uids);
+    finish(high, reason, uids);
   }
 
-  function finish(winners, reason, shownUids) {
+  function finish(winners, reason, shownUids, wonIn, hl) {
     const H = T.hand;
     const share = Math.floor(H.pot / winners.length);
-    const won = {};
-    winners.forEach((w, i) => { won[w] = share + (i === 0 ? H.pot - share * winners.length : 0); });
+    const won = wonIn || {};
+    if (!wonIn) winners.forEach((w, i) => { won[w] = share + (i === 0 ? H.pot - share * winners.length : 0); });
     Object.keys(H.p).forEach((u) => {
       const net = (won[u] || 0) - H.p[u].put;
       H.p[u].net = net;
@@ -1284,7 +1362,7 @@ body.is-display .pc i { font-size: 32px; }
     });
     const shown = {};
     shownUids.forEach((u) => { shown[u] = { cards: SEC.hands[u], label: labelOf(SEC.hands[u], H.variant, H.joker) }; });
-    H.result = { winners, reason, pot: H.pot, shown };
+    H.result = { winners, reason, pot: H.pot, shown, won, hl: hl || null };
     H.turn = null; H.side = null;
     tpgLog(null, `${winners.map(nameOf).join(" & ")} ${winners.length > 1 ? "split" : "won"} the ${rupee(H.pot)} pot. ${reason}.`);
     // the hand is over: let everyone see what they were holding
@@ -1356,7 +1434,10 @@ body.is-display .pc i { font-size: 32px; }
       const shown = R && R.shown && R.shown[u];
       const status = !H ? "" : !p ? "Next hand" : p.out ? "Packed" : p.seen ? "Seen" : "Blind";
       const money = !p ? "" : R ? `${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net))}` : rupee(p.put);
-      const minis = shown ? shown.cards.map(parseCard).map(miniCard).join("") : p && !p.out ? `<span class="mc back"></span><span class="mc back"></span><span class="mc back"></span>` : "";
+      const back = `<span class="mc back"></span>`;
+      const per = cardsPer(H ? H.variant : "classic");
+      const minis = shown ? shown.cards.map(parseCard).map(miniCard).join("")
+        : p && !p.out ? (H.open && H.open[u] ? miniCard(parseCard(H.open[u])) + back.repeat(per - 1) : back.repeat(per)) : "";
       const nm = nameOf(u);
       return `<div class="seat ${turn ? "turn" : ""} ${p && p.out ? "out" : ""} ${won ? "won" : ""} ${user && u === user.uid ? "me" : ""} ${H && !p ? "waiting" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
         <div class="minis">${minis}</div>
@@ -1373,6 +1454,7 @@ body.is-display .pc i { font-size: 32px; }
       center = `${jc ? `<div class="jokercard">${cardHTML(jc, false, 0, false)}<span>Joker · every ${rn(jc.r)}</span></div>` : ""}
         <span class="k">Pot</span><b class="num">${rupee(H.pot)}</b>
         <small class="num">Blind ${rupee(H.stake)} · Chaal ${rupee(H.stake * 2)}</small>
+        ${H.variant !== "classic" ? `<small class="vname">${esc(VAR(H.variant).name)}${VAR(H.variant).low ? " · lowest wins" : ""}</small>` : ""}
         ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
         ${last ? `<em>${esc(last)}</em>` : ""}`;
     } else {
@@ -1386,13 +1468,17 @@ body.is-display .pc i { font-size: 32px; }
     const p = H.p[user.uid];
     const R = H.result;
     const mine = myHand && myHand.n === H.n && myHand.cards ? myHand.cards.map(parseCard) : null;
-    const wild = mine ? wildFlags(mine, H.variant, H.joker) : null;
+    const ev = mine ? handEval(myHand.cards, H.variant, H.joker) : null;
+    const wild = ev ? ev.wild : null;
+    const per = cardsPer(H.variant);
+    const openCard = H.open && H.open[user.uid] ? parseCard(H.open[user.uid]) : null;
     const busy = myPending ? "disabled" : "";
     let h = `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""}">
       <div class="cardhead"><b>Your cards</b><span>${mine ? esc(labelOf(myHand.cards, H.variant, H.joker)) : p.out ? "Packed" : "Blind"}</span></div>
-      <div class="tpcards big">${mine ? mine.map((c, k) => cardHTML(c, wild[k], 0, false)).join("") : backHTML() + backHTML() + backHTML()}</div>`;
+      <div class="tpcards big">${mine ? mine.map((c, k) => cardHTML(c, wild[k], 0, false, ev.used[k] ? "" : "unused")).join("")
+        : (openCard ? cardHTML(openCard, false, 0, false) : backHTML()) + backHTML().repeat(per - 1)}</div>`;
     if (myHand && myHand.n === H.n && myHand.peek) {
-      const pc = myHand.peek.cards.map(parseCard), pw = wildFlags(pc, H.variant, H.joker);
+      const pc = myHand.peek.cards.map(parseCard), pw = handEval(myHand.peek.cards, H.variant, H.joker).wild;
       h += `<div class="peek"><small>Sideshow: ${esc(myHand.peek.name)} had ${esc(labelOf(myHand.peek.cards, H.variant, H.joker))}</small><div class="tpcards">${pc.map((c, k) => cardHTML(c, pw[k], 0, false)).join("")}</div></div>`;
     }
     let acts = "";
@@ -1414,7 +1500,7 @@ body.is-display .pc i { font-size: 32px; }
             <button class="btn brass" data-act="tpgchaal" ${busy}>${p.seen ? "Chaal" : "Blind"} ${rupee(unit)}</button>
             <button class="btn amber" data-act="tpgraise" ${busy}>Raise ${rupee(unit * 2)}</button></div>`;
           if (left === 2) acts += `<button class="btn ghost" data-act="tpgshow" ${busy}>Show ${rupee(unit)}</button>`;
-          if (p.seen && left >= 3) {
+          if (p.seen && left >= 3 && VAR(H.variant).split !== "highlow") {
             const prev = (() => { const o = H.order, i = o.indexOf(user.uid); for (let k = 1; k < o.length; k++) { const u = o[(i - k + o.length) % o.length]; if (!H.p[u].out) return u; } return null; })();
             const ok = prev && H.p[prev].seen;
             acts += `<button class="btn ghost" data-act="tpgside" ${busy} ${ok ? "" : "disabled"}>Sideshow with ${esc(nameOf(prev))} ${rupee(unit)}${ok ? "" : " (still blind)"}</button>`;
@@ -1430,13 +1516,19 @@ body.is-display .pc i { font-size: 32px; }
   }
 
   function resultHTML(H, R) {
-    return `<div class="winbanner"><span>${R.winners.length > 1 ? "Split pot" : "Winner"} · ${esc(R.reason)}</span>
-      <b>${R.winners.map((u) => esc(nameOf(u))).join(" & ")}</b><small class="num">Won ${rupee(R.pot)}</small></div>` +
+    const lbl = (u) => (R.shown && R.shown[u] ? R.shown[u].label : "");
+    const banner = R.hl
+      ? `<div class="winbanner"><span>High-Low · ${rupee(R.pot)} pot split · ${esc(R.reason)}</span>
+          <b>${R.hl.high.map((u) => esc(nameOf(u))).join(" & ")} <i class="hl">High</i></b><small>${esc(lbl(R.hl.high[0]))}</small>
+          <b>${R.hl.low.map((u) => esc(nameOf(u))).join(" & ")} <i class="hl">Low</i></b><small>${esc(lbl(R.hl.low[0]))}</small></div>`
+      : `<div class="winbanner"><span>${R.winners.length > 1 ? "Split pot" : "Winner"} · ${esc(R.reason)}</span>
+          <b>${R.winners.map((u) => esc(nameOf(u))).join(" & ")}</b><small class="num">Won ${rupee(R.pot)}</small></div>`;
+    return banner +
       (Object.keys(R.shown || {}).length ? `<div class="card tphands">` + Object.entries(R.shown).map(([u, s]) => {
-        const C = s.cards.map(parseCard), w = wildFlags(C, H.variant, H.joker);
+        const C = s.cards.map(parseCard), ev = handEval(s.cards, H.variant, H.joker), w = ev.wild;
         return `<div class="tprow ${R.winners.includes(u) ? "win" : ""}"><span class="rank num">${R.winners.includes(u) ? "★" : "·"}</span>
           <div class="tpwho"><b>${esc(nameOf(u))}</b><small>${esc(s.label)}</small></div>
-          <div class="tpcards">${C.map((c, k) => cardHTML(c, w[k], 0, false)).join("")}</div></div>`;
+          <div class="tpcards">${C.map((c, k) => cardHTML(c, w[k], 0, false, ev.used[k] ? "" : "unused")).join("")}</div></div>`;
       }).join("") + `</div>` : "");
   }
 
