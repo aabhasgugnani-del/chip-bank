@@ -493,6 +493,8 @@ body.is-display .pc i { font-size: 32px; }
 .tprow.lowwin .rank { background: var(--amber-fill); color: #2a1d00; }
 .winbanner .hl { font-style: normal; font-family: var(--font-body); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; vertical-align: 6px; color: var(--mint-text); }
 .felt .center small.vname { color: #f8c94c; font-weight: 800; letter-spacing: .04em; }
+.felt .center small.capnote { color: #f8c94c; font-weight: 800; }
+.hostbox .hostgrid select { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -552,7 +554,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.4.0";
+  const APP_VERSION = "v2.5.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1082,7 +1084,13 @@ body.is-display .pc i { font-size: 32px; }
   let moveQueue = [];
   let handUnsub = null, movesUnsub = null;
   let lastTurnNotice = null;
-  const tpgDefaults = () => ({ status: "lobby", settings: { boot: 10, blindRounds: 2, potLimit: 0, variant: "classic" }, seats: [], scores: {}, dealer: -1, hand: null, lastSeq: {}, lastErr: null, hostAlive: 0, updatedAt: 0 });
+  const tpgDefaults = () => ({ status: "lobby", settings: { boot: 10, blindRounds: 2, potLimit: 0, maxChaal: 100, quietRounds: 2, variant: "classic" }, seats: [], scores: {}, dealer: -1, hand: null, lastSeq: {}, lastErr: null, hostAlive: 0, updatedAt: 0 });
+  // Max chaal: a seen player's chaal never goes above this (blind bets top out at half). 0 = no cap.
+  // Quiet rounds: once at the cap, this many full rounds without a sideshow or show forces a show for all. 0 = off.
+  const capOf = (st) => (st && st.maxChaal != null ? Number(st.maxChaal) : 100);
+  const quietOf = (st) => (st && st.quietRounds != null ? Number(st.quietRounds) : 2);
+  const atCap = (st, H) => capOf(st) > 0 && H.stake * 2 >= capOf(st);
+  const raisedStake = (st, stake) => (capOf(st) > 0 ? Math.min(stake * 2, capOf(st) / 2) : stake * 2);
   const isDealer = () => !!(user && HOSTS.includes(user.email) && VIEW === "app");
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const nameOf = (uid) => { const s = T && T.seats.find((x) => x.uid === uid); return s ? s.name : "Someone"; };
@@ -1264,12 +1272,24 @@ body.is-display .pc i { font-size: 32px; }
     if (blindLocked && m.type !== "pack") return `Blind is over after ${T.settings.blindRounds} rounds. See your cards first.`;
     const unit = () => (p.seen ? 2 : 1) * H.stake;
     if (m.type === "chaal" || m.type === "raise") {
-      if (m.type === "raise") H.stake *= 2;
+      if (m.type === "raise") {
+        if (atCap(T.settings, H)) return `Chaal is capped at ${rupee(capOf(T.settings))}, so no more raises`;
+        H.stake = raisedStake(T.settings, H.stake);
+      }
       const amt = unit();
       pay(uid, amt);
       if (!p.seen) p.blindTurns++;
       tpgLog(uid, (p.seen ? (m.type === "raise" ? "raised, chaal " : "chaal ") : (m.type === "raise" ? "raised blind " : "blind ")) + rupee(amt));
       if (T.settings.potLimit > 0 && H.pot >= T.settings.potLimit) { showdown(tpgActive(), "Pot limit reached"); return null; }
+      if (atCap(T.settings, H) && quietOf(T.settings) > 0) {
+        // count turns played at the max chaal; a sideshow request resets it
+        H.quiet = (H.quiet || 0) + 1;
+        if (H.quiet >= quietOf(T.settings) * tpgActive().length) {
+          tpgLog(null, `${quietOf(T.settings)} rounds at the ${rupee(capOf(T.settings))} max chaal with no sideshow or show`);
+          showdown(tpgActive(), "Show for all at max chaal");
+          return null;
+        }
+      }
       H.turn = nextActive(uid);
       return null;
     }
@@ -1291,6 +1311,7 @@ body.is-display .pc i { font-size: 32px; }
       const amt = unit();
       pay(uid, amt);
       H.side = { from: uid, to };
+      H.quiet = 0;
       tpgLog(uid, `asked ${nameOf(to)} for a sideshow (${rupee(amt)})`);
       return null;
     }
@@ -1453,7 +1474,11 @@ body.is-display .pc i { font-size: 32px; }
       const jc = H.joker ? parseCard(H.joker) : null;
       center = `${jc ? `<div class="jokercard">${cardHTML(jc, false, 0, false)}<span>Joker · every ${rn(jc.r)}</span></div>` : ""}
         <span class="k">Pot</span><b class="num">${rupee(H.pot)}</b>
-        <small class="num">Blind ${rupee(H.stake)} · Chaal ${rupee(H.stake * 2)}</small>
+        <small class="num">Blind ${rupee(H.stake)} · Chaal ${rupee(H.stake * 2)}${capOf(t.settings) > 0 ? ` · max ${rupee(capOf(t.settings))}` : ""}</small>
+        ${!R && atCap(t.settings, H) && quietOf(t.settings) > 0 ? (() => {
+          const left = quietOf(t.settings) * H.order.filter((u) => !H.p[u].out).length - (H.quiet || 0);
+          return `<small class="capnote">Max chaal · show for all in ${left} turn${left === 1 ? "" : "s"}</small>`;
+        })() : ""}
         ${H.variant !== "classic" ? `<small class="vname">${esc(VAR(H.variant).name)}${VAR(H.variant).low ? " · lowest wins" : ""}</small>` : ""}
         ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
         ${last ? `<em>${esc(last)}</em>` : ""}`;
@@ -1498,7 +1523,7 @@ body.is-display .pc i { font-size: 32px; }
         } else {
           acts += `<div class="sharegrid">
             <button class="btn brass" data-act="tpgchaal" ${busy}>${p.seen ? "Chaal" : "Blind"} ${rupee(unit)}</button>
-            <button class="btn amber" data-act="tpgraise" ${busy}>Raise ${rupee(unit * 2)}</button></div>`;
+            ${atCap(t.settings, H) ? `<button class="btn amber" disabled>Max chaal</button>` : `<button class="btn amber" data-act="tpgraise" ${busy}>Raise ${rupee((p.seen ? 2 : 1) * raisedStake(t.settings, H.stake))}</button>`}</div>`;
           if (left === 2) acts += `<button class="btn ghost" data-act="tpgshow" ${busy}>Show ${rupee(unit)}</button>`;
           if (p.seen && left >= 3 && VAR(H.variant).split !== "highlow") {
             const prev = (() => { const o = H.order, i = o.indexOf(user.uid); for (let k = 1; k < o.length; k++) { const u = o[(i - k + o.length) % o.length]; if (!H.p[u].out) return u; } return null; })();
@@ -1541,6 +1566,8 @@ body.is-display .pc i { font-size: 32px; }
       <div class="hostgrid">
         <label for="tpgBoot">Boot<input type="number" inputmode="numeric" id="tpgBoot" value="${st.boot}" min="1" ${between ? "" : "disabled"}></label>
         <label for="tpgBlind">Blind rounds<input type="number" inputmode="numeric" id="tpgBlind" value="${st.blindRounds}" min="0" max="10" ${between ? "" : "disabled"}></label>
+        <label for="tpgMax">Max chaal<input type="number" inputmode="numeric" id="tpgMax" value="${capOf(st) || ""}" placeholder="No cap" min="0" ${between ? "" : "disabled"}></label>
+        <label for="tpgQuiet">Show for all after<select id="tpgQuiet" ${between ? "" : "disabled"}>${[0, 1, 2, 3, 4].map((k) => `<option value="${k}" ${k === quietOf(st) ? "selected" : ""}>${k === 0 ? "Never" : k + " quiet round" + (k > 1 ? "s" : "") + " at max"}</option>`).join("")}</select></label>
         <label for="tpgLimit">Pot limit<input type="number" inputmode="numeric" id="tpgLimit" value="${st.potLimit || ""}" placeholder="None" min="0" ${between ? "" : "disabled"}></label>
         <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}</select></label>
       </div>
@@ -1559,6 +1586,12 @@ body.is-display .pc i { font-size: 32px; }
     if (id === "tpgBoot") { const v = Math.round(Number(val)); if (v > 0) s.boot = v; else return; }
     if (id === "tpgBlind") { const v = Math.round(Number(val)); if (v >= 0 && v <= 10) s.blindRounds = v; else return; }
     if (id === "tpgLimit") { const v = Math.round(Number(val)) || 0; s.potLimit = Math.max(0, v); }
+    if (id === "tpgMax") {
+      const v = Math.max(0, Math.round(Number(val)) || 0);
+      if (v && v < s.boot * 2) { toast(`Max chaal has to be at least ${rupee(s.boot * 2)} (twice the boot)`); render(); return; }
+      s.maxChaal = v;
+    }
+    if (id === "tpgQuiet") s.quietRounds = Math.max(0, Math.round(Number(val)) || 0);
     if (id === "tpgVariant") s.variant = val;
     commitT();
   }
@@ -2137,7 +2170,7 @@ body.is-display .pc i { font-size: 32px; }
   $("#view").addEventListener("change", (e) => {
     if (e.target.id === "buyInSetting") render();
     if (e.target.id === "tpVariant") { S.settings.tpVariant = e.target.value; save(); render(); }
-    if (/^tpg(Boot|Blind|Limit|Variant)$/.test(e.target.id)) tpgSetting(e.target.id, e.target.value);
+    if (/^tpg(Boot|Blind|Limit|Variant|Max|Quiet)$/.test(e.target.id)) tpgSetting(e.target.id, e.target.value);
   });
 
   setInterval(() => {
