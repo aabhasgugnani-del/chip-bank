@@ -495,6 +495,12 @@ body.is-display .pc i { font-size: 32px; }
 .felt .center small.vname { color: #f8c94c; font-weight: 800; letter-spacing: .04em; }
 .felt .center small.capnote { color: #f8c94c; font-weight: 800; }
 .hostbox .hostgrid select { font-size: 15px; }
+/* ---- King Fuck Off ---- */
+.hearts { color: #ff6b81; letter-spacing: .06em; }
+.cardhead span.hearts { color: #e0475f; font-size: 15px; letter-spacing: .08em; }
+.seat .lbl small.hearts { color: #ffb3c0; }
+.seat .lbl small.hearts.hit { color: #ff6b81; font-weight: 800; }
+.felt .center b.kfoRound { font-size: 30px; color: #eaf6ef; }
 </style>
 </head>
 <body>
@@ -554,7 +560,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.5.0";
+  const APP_VERSION = "v2.6.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1117,7 +1123,7 @@ body.is-display .pc i { font-size: 32px; }
         if (H && H.n !== prevN && prevN !== null && seated && mode !== "owner") liveTab = "play";
         if (H && !H.result && H.turn === user.uid && lastTurnNotice !== H.n + ":" + H.log.length) {
           lastTurnNotice = H.n + ":" + H.log.length;
-          if (!document.hidden) { try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} }
+          if (!document.hidden && navigator.userActivation && navigator.userActivation.hasBeenActive) { try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} }   // browsers refuse vibration before the first tap
         }
       }
       render();
@@ -1203,6 +1209,7 @@ body.is-display .pc i { font-size: 32px; }
 
   function startHand() {
     if (!T) T = tpgDefaults();
+    if (T.settings.variant === "kfo") return startKfo();
     if (T.hand && !T.hand.result) return "Finish the current hand first";
     if (T.seats.length < 2) return "At least 2 players need to sit down";
     const v = T.settings.variant || "classic";
@@ -1245,10 +1252,16 @@ body.is-display .pc i { font-size: 32px; }
     }
     if (m.type === "leave") {
       if (!seat) return null;
-      if (H && !H.result && H.p[uid] && !H.p[uid].out) packPlayer(uid, "left the table");
+      if (H && !H.result && H.kind === "kfo" && H.order.includes(uid) && !H.left[uid]) {
+        H.left[uid] = true;
+        if (T.kfo) T.kfo.lives[uid] = 0;
+        tpgLog(uid, "left the table");
+        if (H.turn === uid) kfoAdvance(uid);
+      } else if (H && !H.result && H.p && H.p[uid] && !H.p[uid].out) packPlayer(uid, "left the table");
       T.seats = T.seats.filter((s) => s.uid !== uid);
       return null;
     }
+    if (H && H.kind === "kfo") return kfoMove(uid, m);
     if (!H || H.result) return "No hand is being played right now";
     const p = H.p[uid];
     if (!p || p.out) return "You're not in this hand";
@@ -1412,7 +1425,14 @@ body.is-display .pc i { font-size: 32px; }
         <button class="btn brass" type="submit" ${myPending ? "disabled" : ""}>Sit down</button></div></form>`;
     }
 
-    if (H) {
+    if (H && H.kind === "kfo") {
+      h += kfoTableHTML(t, H);
+      if (H.result) h += kfoResultHTML(t, H);
+      if (H.order.includes(user.uid) && !H.left[user.uid]) h += kfoMyArea(t, H);
+      h += `<details class="history" ${H.result ? "" : "open"}><summary>What happened</summary>` + H.log.slice().reverse().slice(0, 14).map((l) =>
+        `<div class="hgame"><span class="num">${fmtTime(l.t)}</span> · ${l.who ? `<b>${esc(l.who)}</b> ` : ""}${esc(l.text)}</div>`).join("") + `</details>`;
+      h += kfoLivesCard(t);
+    } else if (H) {
       const R = H.result;
       h += tableHTML(t, H);
       if (R) h += resultHTML(H, R);
@@ -1431,7 +1451,7 @@ body.is-display .pc i { font-size: 32px; }
             <span class="pamt num ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : v < 0 ? "−" : ""}${rupee(Math.abs(v))}</span>
             ${dealer && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
         }).join("") + `</div>`;
-      if (seated && (!H || H.result || !H.p[user.uid] || H.p[user.uid].out)) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
+      if (seated && (!H || H.result || (H.kind === "kfo" ? !H.order.includes(user.uid) : !H.p[user.uid] || H.p[user.uid].out))) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
     }
     return h + `</section>`;
   }
@@ -1569,10 +1589,11 @@ body.is-display .pc i { font-size: 32px; }
         <label for="tpgMax">Max chaal<input type="number" inputmode="numeric" id="tpgMax" value="${capOf(st) || ""}" placeholder="No cap" min="0" ${between ? "" : "disabled"}></label>
         <label for="tpgQuiet">Show for all after<select id="tpgQuiet" ${between ? "" : "disabled"}>${[0, 1, 2, 3, 4].map((k) => `<option value="${k}" ${k === quietOf(st) ? "selected" : ""}>${k === 0 ? "Never" : k + " quiet round" + (k > 1 ? "s" : "") + " at max"}</option>`).join("")}</select></label>
         <label for="tpgLimit">Pot limit<input type="number" inputmode="numeric" id="tpgLimit" value="${st.potLimit || ""}" placeholder="None" min="0" ${between ? "" : "disabled"}></label>
-        <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}</select></label>
+        <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}<option value="kfo" ${st.variant === "kfo" ? "selected" : ""}>${KFO.name}</option></select></label>
       </div>
       <div class="tpadd">
-        ${between ? `<button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">Hand in play. Keep this screen open.</p>`}
+        ${between ? `<button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${st.variant === "kfo" ? (!t.kfo || t.kfo.over ? (t.seats.length < 3 ? "Needs 3 players to start" : "Start a new game") : "Deal next round") : H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">${H && H.kind === "kfo" ? "Round" : "Hand"} in play. Keep this screen open.</p>`}
+        ${st.variant === "kfo" ? `<p class="sheetnote">${KFO.desc} Boot, blind rounds and chaal settings don't apply.</p>` : ""}
         ${between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
       </div>
     </div>`;
@@ -1594,6 +1615,208 @@ body.is-display .pc i { font-size: 32px; }
     if (id === "tpgQuiet") s.quietRounds = Math.max(0, Math.round(Number(val)) || 0);
     if (id === "tpgVariant") s.variant = val;
     commitT();
+  }
+
+  // ---------- King Fuck Off (online, host phone deals) ----------
+  // One card each, three lives each. In turn, players Stay or Swap with the next player clockwise; a King
+  // blocks the swap ("Fuck Off!"). The dealer acts last and may swap for the top card of the deck instead.
+  // Lowest final card loses a life (ties: extra cards to the tied players until one is uniquely lowest).
+  // Last player with lives left wins. State: T.kfo = { game, lives, dealer, over, winner, round }.
+  const KFO = { name: "King Fuck Off", desc: "One card each, 3 lives. Stay or swap with the next player; a King blocks the swap. Lowest card loses a life. Last one standing wins." };
+  const kfoRank = (c) => parseCard(c).r;              // A = 14 high, 2 low; suits never matter
+  const kfoAlive = () => T.seats.map((s) => s.uid).filter((u) => T.kfo && (T.kfo.lives[u] || 0) > 0);
+  function kfoNextAlive(after) {
+    const ids = T.seats.map((s) => s.uid), i = ids.indexOf(after);
+    for (let k = 1; k <= ids.length; k++) { const u = ids[(Math.max(i, -1) + k) % ids.length]; if ((T.kfo.lives[u] || 0) > 0) return u; }
+    return null;
+  }
+  function kfoDraw() {
+    if (!SEC.deck || !SEC.deck.length) {
+      // draw pile ran out: reshuffle every card that isn't in an active player's hand
+      const held = new Set(Object.values(SEC.hands).map((h) => h[0]));
+      SEC.deck = shuffledDeck().filter((c) => !held.has(c));
+    }
+    return SEC.deck.pop();
+  }
+
+  function startKfo() {
+    if (T.hand && !T.hand.result) return "Finish the current round first";
+    let K = T.kfo;
+    if (!K || K.over) {
+      const ids = T.seats.map((s) => s.uid);
+      if (ids.length < 3) return "King Fuck Off needs at least 3 players";
+      const r = new Uint32Array(1); crypto.getRandomValues(r);
+      K = T.kfo = { game: ((K && K.game) || 0) + 1, lives: Object.fromEntries(ids.map((u) => [u, 3])), over: false, winner: null, round: 0, dealer: ids[r[0] % ids.length] };
+    } else {
+      K.dealer = kfoNextAlive(K.dealer);
+    }
+    const alive = kfoAlive();
+    if (alive.length < 2) return "Not enough players left with lives";
+    if (!alive.includes(K.dealer)) K.dealer = kfoNextAlive(K.dealer);
+    const d = alive.indexOf(K.dealer);
+    const order = alive.slice(d + 1).concat(alive.slice(0, d + 1));   // left of the dealer first, dealer last
+    const deck = shuffledDeck();
+    const hands = {};
+    order.forEach((u) => { hands[u] = [deck.pop()]; });
+    const n = ((T.hand && T.hand.n) || 0) + 1;
+    K.round += 1;
+    SEC = { n, hands, deck };
+    SECRET.set(SEC).catch(() => {});
+    T.hand = { kind: "kfo", variant: "kfo", n, round: K.round, order, dealer: K.dealer, turn: order[0], acted: {}, kings: {}, left: {}, log: [], result: null };
+    T.status = "hand";
+    order.forEach((u) => HANDS.doc(u).set({ n, cards: hands[u], peek: null }).catch(() => {}));
+    tpgLog(null, `Game ${K.game}, round ${K.round}. ${nameOf(K.dealer)} deals and plays last.`);
+    return null;
+  }
+
+  function kfoAdvance(from) {
+    const H = T.hand, i = H.order.indexOf(from);
+    for (let j = i + 1; j < H.order.length; j++) { const u = H.order[j]; if (!H.left[u]) { H.turn = u; return; } }
+    kfoReveal();
+  }
+  const kfoNext = (uid) => {           // next player clockwise who is still in this round (wraps to the start)
+    const o = T.hand.order, i = o.indexOf(uid);
+    for (let k = 1; k < o.length; k++) { const u = o[(i + k) % o.length]; if (!T.hand.left[u]) return u; }
+    return null;
+  };
+
+  function kfoMove(uid, m) {
+    const H = T.hand;
+    if (H.result) return "This round is over";
+    if (!SEC || SEC.n !== H.n) return "The dealer lost track of this round's cards. Ask the host to deal again.";
+    if (H.turn !== uid) return `It's ${nameOf(H.turn)}'s turn`;
+    const isDlr = uid === H.dealer;
+    if (m.type === "stay") {
+      H.acted[uid] = "stay"; tpgLog(uid, "stayed");
+    } else if (m.type === "swap") {
+      if (isDlr) return "The dealer can stay or swap with the deck";
+      const to = kfoNext(uid);
+      const theirs = SEC.hands[to][0];
+      if (kfoRank(theirs) === 13) {
+        H.kings[to] = theirs; H.acted[uid] = "blocked";
+        tpgLog(to, `showed a King to ${nameOf(uid)}: “Fuck Off!”`);
+      } else {
+        const mine = SEC.hands[uid][0];
+        SEC.hands[uid] = [theirs]; SEC.hands[to] = [mine];
+        writeHand(uid, { n: H.n, cards: [theirs] }); writeHand(to, { n: H.n, cards: [mine] });
+        H.acted[uid] = "swap"; tpgLog(uid, `swapped cards with ${nameOf(to)}`);
+      }
+    } else if (m.type === "draw") {
+      if (!isDlr) return "Only the dealer can swap with the deck";
+      const c = kfoDraw();
+      SEC.hands[uid] = [c]; writeHand(uid, { n: H.n, cards: [c] });
+      H.acted[uid] = "draw"; tpgLog(uid, "swapped their card for the top of the deck");
+    } else return "In King Fuck Off you can only stay or swap";
+    SECRET.set(SEC).catch(() => {});
+    kfoAdvance(uid);
+    return null;
+  }
+
+  function kfoReveal() {
+    const H = T.hand, K = T.kfo;
+    const inRound = H.order.filter((u) => !H.left[u]);
+    const final = Object.fromEntries(inRound.map((u) => [u, SEC.hands[u][0]]));
+    const low = Math.min(...inRound.map((u) => kfoRank(final[u])));
+    let tied = inRound.filter((u) => kfoRank(final[u]) === low);
+    const tiebreaks = [];
+    while (tied.length > 1) {
+      const extra = {};
+      tied.forEach((u) => { extra[u] = kfoDraw(); });
+      tiebreaks.push(extra);
+      const m = Math.min(...tied.map((u) => kfoRank(extra[u])));
+      tied = tied.filter((u) => kfoRank(extra[u]) === m);
+    }
+    const loser = tied[0];
+    K.lives[loser] = Math.max(0, (K.lives[loser] || 0) - 1);
+    const eliminated = K.lives[loser] === 0;
+    const still = kfoAlive();
+    if (still.length <= 1) { K.over = true; K.winner = still[0] || null; }
+    H.result = { final, tiebreaks, loser, eliminated, winner: K.over ? K.winner : null, winners: K.over && K.winner ? [K.winner] : [] };
+    H.turn = null;
+    tpgLog(loser, `had the lowest card and lost a life${eliminated ? " (out of the game)" : ""}`);
+    if (K.over && K.winner) tpgLog(K.winner, "is the last one standing and wins the game");
+    SECRET.set(SEC).catch(() => {});
+  }
+
+  // ---- screens ----
+  const hearts = (n) => "♥".repeat(Math.max(0, n)) + "♡".repeat(Math.max(0, 3 - n));
+  function kfoTableHTML(t, H) {
+    const K = t.kfo || { lives: {} };
+    const R = H.result;
+    let seats = t.seats.map((x) => x.uid).filter((u) => K.lives[u] != null);
+    const mine = user ? seats.indexOf(user.uid) : -1;
+    if (mine > 0) seats = seats.slice(mine).concat(seats.slice(0, mine));
+    const n = seats.length;
+    const seatHTML = seats.map((u, i) => {
+      const ang = (90 + (i * 360) / n) * Math.PI / 180;
+      const x = 50 + 41 * Math.cos(ang), y = 50 + 41 * Math.sin(ang);
+      const lives = K.lives[u] || 0;
+      const inRound = H.order.includes(u) && !H.left[u];
+      const turn = !R && H.turn === u;
+      const card = R && R.final[u] ? R.final[u] : H.kings[u] || null;
+      const lost = R && R.loser === u;
+      const status = !inRound ? (lives ? "Next round" : "Out") : R ? (lost ? "Lost a life" : "Safe") : H.acted[u] ? { stay: "Stayed", swap: "Swapped", blocked: "Blocked", draw: "Drew" }[H.acted[u]] : "";
+      return `<div class="seat ${turn ? "turn" : ""} ${!lives || !inRound ? "out" : ""} ${R && R.winner === u ? "won" : ""} ${user && u === user.uid ? "me" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
+        <div class="minis">${inRound ? (card ? miniCard(parseCard(card)) : `<span class="mc back"></span>`) : ""}</div>
+        <div class="av">${esc((nameOf(u)[0] || "?").toUpperCase())}${u === H.dealer ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="lbl"><b>${esc(nameOf(u))}</b><small class="hearts ${lost ? "hit" : ""}">${hearts(lives)}${status ? " · " + status : ""}</small></div>
+      </div>`;
+    }).join("");
+    const last = H.log.length ? H.log[H.log.length - 1] : null;
+    const center = `<span class="k">King Fuck Off</span><b class="kfoRound num">Round ${H.round}</b>
+      ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
+      ${R ? `<span class="turnline">${R.winner ? esc(nameOf(R.winner)) + " wins the game!" : esc(nameOf(R.loser)) + " loses a life"}</span>` : ""}
+      ${last ? `<em>${last.who ? esc(last.who) + " " : ""}${esc(last.text)}</em>` : ""}`;
+    return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="King Fuck Off table with ${n} players">
+      <div class="rail"></div><div class="center">${center}</div>${seatHTML}</div>`;
+  }
+
+  function kfoMyArea(t, H) {
+    const R = H.result;
+    const card = myHand && myHand.n === H.n && myHand.cards ? parseCard(myHand.cards[0]) : null;
+    const busy = myPending ? "disabled" : "";
+    const isDlr = H.dealer === user.uid;
+    let acts = "";
+    if (!R) {
+      if (H.turn === user.uid) {
+        const to = kfoNext(user.uid);
+        acts = `<p class="yourturn">Your turn</p><div class="sharegrid">
+          <button class="btn ghost" data-act="kfostay" ${busy}>Stay</button>
+          ${isDlr ? `<button class="btn brass" data-act="kfodraw" ${busy}>Swap with deck</button>`
+                  : `<button class="btn brass" data-act="kfoswap" ${busy}>Swap with ${esc(nameOf(to))}</button>`}</div>
+          <p class="sheetnote center">${isDlr ? "You're the dealer: your new card from the deck is final." : `If ${esc(nameOf(to))} has a King, they'll block it.`}</p>`;
+      } else if (H.acted[user.uid]) {
+        acts = `<p class="sheetnote center">You ${{ stay: "stayed", swap: "swapped", blocked: "were blocked by a King", draw: "swapped with the deck" }[H.acted[user.uid]]}. Waiting for ${esc(nameOf(H.turn))}…</p>`;
+      } else {
+        acts = `<p class="sheetnote center">Waiting for ${esc(nameOf(H.turn))}…${isDlr ? " You're the dealer, so you play last." : ""}</p>`;
+      }
+    }
+    return `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""}">
+      <div class="cardhead"><b>Your card</b><span class="hearts">${hearts((t.kfo && t.kfo.lives[user.uid]) || 0)}</span></div>
+      <div class="tpcards big">${card ? cardHTML(card, false, 0, false) : backHTML()}</div>
+      ${acts ? `<div class="tpgacts">${acts}</div>` : ""}</div>`;
+  }
+
+  function kfoResultHTML(t, H) {
+    const R = H.result, K = t.kfo || { lives: {} };
+    const ids = Object.keys(R.final).sort((a, b) => kfoRank(R.final[b]) - kfoRank(R.final[a]));
+    let h = `<div class="winbanner"><span>${R.winner ? "Winner · last one standing" : "Round " + H.round}</span>
+      <b>${R.winner ? esc(nameOf(R.winner)) : esc(nameOf(R.loser)) + " loses a life"}</b>
+      <small>${R.winner ? `${esc(nameOf(R.loser))} lost their last life` : R.eliminated ? `${esc(nameOf(R.loser))} is out of the game` : `${hearts(K.lives[R.loser] || 0)} left`}</small></div>`;
+    h += `<div class="card tphands">` + ids.map((u) => {
+      const tb = R.tiebreaks.map((x) => x[u]).filter(Boolean);
+      return `<div class="tprow ${u === R.loser ? "lowwin" : ""}"><span class="rank num">${u === R.loser ? "−1" : "✓"}</span>
+        <div class="tpwho"><b>${esc(nameOf(u))}</b><small>${u === R.loser ? "Lowest card" : "Safe"}${tb.length ? " · tie-break " + tb.map((c) => rn(parseCard(c).r)).join(", ") : ""}</small></div>
+        <div class="tpcards">${cardHTML(parseCard(R.final[u]), false, 0, false)}${tb.map((c) => cardHTML(parseCard(c), false, 0, false, "unused")).join("")}</div></div>`;
+    }).join("") + `</div>`;
+    return h;
+  }
+
+  function kfoLivesCard(t) {
+    const K = t.kfo; if (!K) return "";
+    const ids = t.seats.map((s) => s.uid).filter((u) => K.lives[u] != null).sort((a, b) => (K.lives[b] || 0) - (K.lives[a] || 0));
+    return `<div class="card"><div class="cardhead"><b>Lives · game ${K.game}</b><span>${K.over ? "Game over" : kfoAlive().length + " still in"}</span></div>` +
+      ids.map((u) => `<div class="lrow"><div class="lname"><b>${esc(nameOf(u))}${user && u === user.uid ? ` <span class="tag">You</span>` : ""}${K.winner === u ? ` <span class="tag">Winner</span>` : ""}</b></div><span class="pamt hearts">${(K.lives[u] || 0) ? hearts(K.lives[u]) : "Out"}</span></div>`).join("") + `</div>`;
   }
 
   // ---------- share sheet ----------
@@ -2087,6 +2310,9 @@ body.is-display .pc i { font-size: 32px; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
     if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "kfostay") sendMove("stay");
+    else if (act === "kfoswap") sendMove("swap");
+    else if (act === "kfodraw") sendMove("draw");
     else if (act === "tpgsee") sendMove("see");
     else if (act === "tpgchaal") sendMove("chaal");
     else if (act === "tpgraise") sendMove("raise");
