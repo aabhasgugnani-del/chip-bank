@@ -448,7 +448,7 @@ body.is-display .pc i { font-size: 32px; }
 .felt .rail { position: absolute; inset: 11% 13%; border-radius: 50%;
   background: radial-gradient(ellipse at 50% 38%, #24805a 0%, #17603f 45%, #0e3f2a 100%);
   border: 12px solid #6b4426; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 8px 30px rgba(0,0,0,.35), 0 0 0 3px #3e2715, 0 14px 34px rgba(0,0,0,.28); }
-.felt .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54%; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; color: #eaf6ef; }
+.felt .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 46%; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; color: #eaf6ef; }
 .felt .center .k { font-size: 10px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; opacity: .75; }
 .felt .center b { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 9vw, 40px); line-height: 1; color: #7ef0b8; }
 .felt .center b.lobby { font-size: 24px; color: #eaf6ef; }
@@ -501,6 +501,99 @@ body.is-display .pc i { font-size: 32px; }
 .seat .lbl small.hearts { color: #ffb3c0; }
 .seat .lbl small.hearts.hit { color: #ff6b81; font-weight: 800; }
 .felt .center b.kfoRound { font-size: 30px; color: #eaf6ef; }
+/* ---- game room (Play tab): darker room, gold-rimmed table, timer ring, effects, chat ---- */
+body.playmode {
+  --bg: #0d0a16; --surface: #18131f; --raised: #241c2f; --line: #33294a; --fg: #f3eefb; --muted: #a99ebd;
+  --good: #6ff0b0; --good-soft: #143424; --bad: #ff8080; --bad-soft: #3a1717; --amber: #f8c94c; --amber-soft: #3a2d10;
+  --mint-text: #7ef0b8; --shadow: none;
+  color-scheme: dark;
+  background: radial-gradient(120% 70% at 50% 0%, #2c1944 0%, #140d20 55%, #0a0812 100%) fixed, #0d0a16;
+  color: var(--fg);
+}
+body.playmode header.top { display: none; }
+body.playmode .tabs { background: rgba(12, 9, 20, .88); border-top-color: #2f2640; }
+body.playmode .card, body.playmode details.history { background: rgba(26, 20, 34, .92); border-color: #33294a; }
+.felt .rail {
+  background: radial-gradient(ellipse at 50% 38%, #22925f 0%, #146a45 46%, #0b4630 100%);
+  border: 14px solid #5a3317;
+  box-shadow: inset 0 0 0 3px #c9a24a, inset 0 12px 40px rgba(0,0,0,.45), 0 0 0 3px #c9a24a, 0 0 0 7px #2a170a, 0 22px 50px rgba(0,0,0,.55);
+}
+.seat .av { overflow: visible; }
+.seat .av .ring { position: absolute; left: -9px; top: -9px; width: calc(100% + 18px); height: calc(100% + 18px); transform: rotate(-90deg); pointer-events: none; }
+.seat .av .ring circle { fill: none; stroke: #7ef0b8; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; transition: stroke-dashoffset .2s linear, stroke .3s; }
+.felt .bet { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,.55); color: #fff3cf; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px 2px 3px; z-index: 1; white-space: nowrap; }
+.felt .bet i, .fx .flychip { background: radial-gradient(circle, #ffd66b 0 32%, #b8861f 33% 52%, #ffd66b 53% 68%, #8a5d0b 69%); box-shadow: 0 0 0 1px #5e3f07, 0 2px 4px rgba(0,0,0,.4); border-radius: 50%; }
+.felt .bet i { width: 15px; height: 15px; flex: none; }
+.felt .fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.fx .badge { position: absolute; transform: translate(-50%, -150%); background: linear-gradient(180deg, #ffe08a, #f2b632); color: #2a1d00; font-weight: 900; font-size: 11px; letter-spacing: .06em; padding: 4px 9px; border-radius: 8px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.45); animation: fxbadge 2.6s ease-out forwards; }
+@keyframes fxbadge { 0% { opacity: 0; transform: translate(-50%, -110%) scale(.6); } 10% { opacity: 1; transform: translate(-50%, -165%) scale(1.08); } 18% { transform: translate(-50%, -150%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -175%); } }
+.fx .flychip { position: absolute; left: var(--sx); top: var(--sy); width: 16px; height: 16px; margin: -8px 0 0 -8px; animation: fxtopot .8s ease-in forwards; }
+@keyframes fxtopot { 80% { opacity: 1; } to { left: 50%; top: 50%; opacity: 0; } }
+.fx .flychip.out { left: 50%; top: 50%; animation: fxpayout .9s ease-out both; }
+@keyframes fxpayout { from { left: 50%; top: 50%; opacity: 1; } 85% { opacity: 1; } to { left: var(--ex); top: var(--ey); opacity: 0; } }
+.fx .react { position: absolute; font-size: 34px; line-height: 1; transform: translate(-50%, -50%); animation: fxfloat 2.6s ease-out forwards; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
+@keyframes fxfloat { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.4); } 12% { opacity: 1; transform: translate(-50%, -85%) scale(1.3); } 25% { transform: translate(-50%, -95%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -270%) scale(1); } }
+.fx .speech { position: absolute; transform: translate(-50%, calc(-100% - 36px)); width: max-content; max-width: 150px; background: #fff; color: #17121f; font-size: 12px; font-weight: 700; line-height: 1.25; padding: 6px 10px; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,.4); text-align: center; animation: fxspeech 4.5s ease-out forwards; }
+.fx .speech::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.fx .speech.below { transform: translate(-50%, 48px); }
+.fx .speech.below::after { bottom: auto; top: -6px; border: 6px solid transparent; border-bottom-color: #fff; border-top: 0; }
+@keyframes fxspeech { 0% { opacity: 0; } 6% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fx .badge, .fx .react, .fx .speech { animation-duration: 2.6s; animation-timing-function: steps(1, end); } .fx .flychip { display: none; } }
+.tabletools { position: absolute; left: 0; right: 0; top: -20px; display: flex; gap: 8px; z-index: 4; pointer-events: none; }
+.tabletools .spacer { flex: 1; }
+.ttool { pointer-events: auto; position: relative; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,.16); background: rgba(20, 14, 30, .88); font-size: 19px; display: grid; place-items: center; box-shadow: 0 4px 12px rgba(0,0,0,.35); padding: 0; }
+.ttool .unread { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 9px; background: #ff4d6d; color: #fff; font-size: 10px; font-style: normal; font-weight: 800; display: grid; place-items: center; padding: 0 4px; }
+.reactbar { position: absolute; right: 0; top: 28px; z-index: 5; display: grid; grid-template-columns: repeat(5, 42px); gap: 4px; padding: 8px; background: rgba(20, 14, 30, .96); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.reactbar button { font-size: 25px; line-height: 1; background: transparent; border: 0; border-radius: 10px; height: 42px; padding: 0; }
+.reactbar button:active { background: rgba(255,255,255,.12); }
+.chatsheet { max-height: 82vh; }
+.chatlist { min-height: 150px; max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.cmsg { align-self: flex-start; max-width: 85%; background: var(--raised); border-radius: 14px 14px 14px 4px; padding: 7px 11px; display: flex; flex-direction: column; gap: 1px; }
+.cmsg.mine { align-self: flex-end; background: color-mix(in srgb, var(--mint) 24%, var(--surface)); border-radius: 14px 14px 4px 14px; }
+.cmsg b { font-size: 12px; color: var(--mint-text); }
+.cmsg span { font-size: 15px; overflow-wrap: anywhere; }
+.cmsg i { font-style: normal; font-size: 10px; color: var(--muted); align-self: flex-end; }
+.phrases { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.phrases .pick { flex: none; font-size: 13px; padding: 7px 12px; }
+body.playmode .myhand { position: sticky; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); z-index: 6; background: rgba(20, 14, 30, .95); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid #3a2e4d; box-shadow: 0 -10px 30px rgba(0,0,0,.45); }
+body.playmode .myhand.myturn { border: 2px solid #f8c94c; box-shadow: 0 0 0 3px rgba(248, 201, 76, .25), 0 -10px 30px rgba(0,0,0,.45); }
+body.playmode .myhand .cardhead { padding: 10px 16px; }
+body.playmode .tpcards.big { padding: 10px 12px 2px; }
+body.playmode .tpcards.big .pc { width: 62px; height: 88px; }
+body.playmode .tpcards.big .pc i { font-size: 32px; }
+.cd { display: inline-block; min-width: 38px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(126, 240, 184, .16); color: #7ef0b8; font-size: 15px; text-align: center; vertical-align: 2px; }
+.cd.low { background: rgba(255, 107, 107, .2); color: #ff9a9a; }
+.cd:empty { display: none; }
+/* compact action bar: my cards on the left (tap SEE on them), my turn and buttons on the right */
+.tpcards.big { position: relative; }
+.seebtn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 2px solid #fff3cf; background: linear-gradient(180deg, #ffd66b, #e3a520); color: #2a1d00; font-weight: 900; letter-spacing: .14em; font-size: 15px; padding: 8px 18px; border-radius: 999px; box-shadow: 0 6px 16px rgba(0,0,0,.45); }
+.seebtn:disabled { opacity: .6; }
+body.playmode .livehead { display: none; }
+body.playmode .livetabs { margin-top: 4px; }
+body.playmode .felt { aspect-ratio: 1 / 1.08; margin-top: 30px; }
+body.playmode .myhand { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "head head" "cards acts" "peek peek"; align-items: center; padding-bottom: 12px; }
+body.playmode .myhand .cardhead { grid-area: head; padding: 8px 14px 6px; border-bottom: 0; }
+body.playmode .myhand .cardhead b { font-size: 15px; }
+body.playmode .myhand .tpcards.big { grid-area: cards; padding: 0 4px 0 12px; gap: 5px; }
+body.playmode .myhand .tpcards.big .pc { width: 46px; height: 64px; }
+body.playmode .myhand .tpcards.big .pc b { font-size: 15px; top: 4px; left: 5px; }
+body.playmode .myhand .tpcards.big .pc i { font-size: 22px; margin-top: 8px; }
+body.playmode .myhand .seebtn { font-size: 13px; padding: 7px 14px; }
+body.playmode .myhand .tpgacts { grid-area: acts; padding: 0 12px 0 6px; gap: 6px; }
+body.playmode .myhand .tpgacts .sharegrid { gap: 6px; }
+body.playmode .myhand .tpgacts .btn { padding: 10px 6px; font-size: 15px; }
+body.playmode .myhand .tpgacts .sheetnote { font-size: 12px; }
+body.playmode .myhand .yourturn { font-size: 16px; text-align: left; }
+body.playmode .myhand .peek { grid-area: peek; }
+details.hostbox > summary { list-style: none; cursor: pointer; }
+details.hostbox > summary::-webkit-details-marker { display: none; }
+details.hostbox > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin-left: 4px; flex: none; }
+details.hostbox[open] > summary::after { transform: rotate(-135deg); }
+details.hostbox:not([open]) > summary { border-bottom: 0; }
+.hostbox .hostgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hostbox label, .hostbox input, .hostbox select { min-width: 0; width: 100%; }
+.sharegrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tpgacts .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -560,7 +653,7 @@ body.is-display .pc i { font-size: 32px; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.6.0";
+  const APP_VERSION = "v2.7.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1106,9 +1199,11 @@ body.is-display .pc i { font-size: 32px; }
 
   // ---- connection ----
   function tpgConnect() {
+    chatConnect();
     TPG.onSnapshot((snap) => {
       if (snap.metadata.hasPendingWrites) return;
       const r = snap.exists ? snap.data() : null;
+      noteSkew(r);
       const prevN = T && T.hand ? T.hand.n : null;
       if (!isDealer() || !T || (r && (r.updatedAt || 0) > (T.updatedAt || 0))) T = r;
       if (!tLoaded) { tLoaded = true; const q = moveQueue; moveQueue = []; q.forEach(([u, m]) => dealerMove(u, m)); }
@@ -1181,7 +1276,9 @@ body.is-display .pc i { font-size: 32px; }
     T.lastSeq = T.lastSeq || {};
     if (!m || !m.seq || m.seq <= (T.lastSeq[uid] || 0)) return;
     T.lastSeq[uid] = m.seq;
+    const before = turnKey();
     const err = applyMove(uid, m);
+    stampTurn(before);
     T.lastErr = err ? { uid, seq: m.seq, text: err } : null;
     if (err && uid === user.uid) toast(err);
     commitT();
@@ -1189,7 +1286,7 @@ body.is-display .pc i { font-size: 32px; }
 
   function tpgLog(uid, text) {
     const H = T.hand; if (!H) return;
-    H.log.push({ t: Date.now(), who: uid ? nameOf(uid) : null, text });
+    H.log.push({ t: Date.now(), who: uid ? nameOf(uid) : null, uid: uid || null, text });
     if (H.log.length > 40) H.log = H.log.slice(-40);
   }
   const tpgActive = () => T.hand.order.filter((u) => !T.hand.p[u].out);
@@ -1229,7 +1326,7 @@ body.is-display .pc i { font-size: 32px; }
     order.forEach((u) => { p[u] = { seen: false, out: false, put: boot, blindTurns: 0 }; });
     // Stud: everyone's first card is dealt face up, so it goes in the public table doc.
     const open = VAR(v).stud ? Object.fromEntries(order.map((u) => [u, hands[u][0]])) : null;
-    T.hand = { n, order, joker, variant: v, p, pot: boot * order.length, stake: boot, turn: order[0], side: null, log: [], result: null, open };
+    T.hand = { n, order, joker, variant: v, p, pot: boot * order.length, stake: boot, turn: order[0], side: null, log: [], result: null, open, turnAt: Date.now() };
     T.status = "hand";
     SEC = { n, hands };
     SECRET.set(SEC).catch(() => {});
@@ -1466,15 +1563,20 @@ body.is-display .pc i { font-size: 32px; }
     else if (mine < 0 && H) { const f = seats.indexOf(H.order[0]); if (f > 0) seats = seats.slice(f).concat(seats.slice(0, f)); }
     const n = seats.length;
     const dealerUid = t.seats[t.dealer] ? t.seats[t.dealer].uid : null;
+    const pos = {};
+    let bets = "";
     const seatHTML = seats.map((u, i) => {
       const ang = (90 + (i * 360) / n) * Math.PI / 180;
       const x = 50 + 41 * Math.cos(ang), y = 50 + 41 * Math.sin(ang);
+      pos[u] = { x: x.toFixed(2), y: y.toFixed(2) };
       const p = H && H.p[u];
+      // Zynga-style: what each player has put in sits as a chip in front of their seat
+      if (p && !p.out && !R) bets += `<span class="bet num" style="left:${(50 + 30 * Math.cos(ang)).toFixed(2)}%;top:${(50 + (Math.sin(ang) < 0 ? 21 : 27) * Math.sin(ang)).toFixed(2)}%"><i></i>${rupee(p.put)}</span>`;
       const turn = H && !R && H.turn === u;
       const won = R && R.winners.includes(u);
       const shown = R && R.shown && R.shown[u];
       const status = !H ? "" : !p ? "Next hand" : p.out ? "Packed" : p.seen ? "Seen" : "Blind";
-      const money = !p ? "" : R ? `${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net))}` : rupee(p.put);
+      const money = !p ? "" : R ? `${p.net >= 0 ? "+" : "−"}${rupee(Math.abs(p.net))}` : "";
       const back = `<span class="mc back"></span>`;
       const per = cardsPer(H ? H.variant : "classic");
       const minis = shown ? shown.cards.map(parseCard).map(miniCard).join("")
@@ -1482,7 +1584,7 @@ body.is-display .pc i { font-size: 32px; }
       const nm = nameOf(u);
       return `<div class="seat ${turn ? "turn" : ""} ${p && p.out ? "out" : ""} ${won ? "won" : ""} ${user && u === user.uid ? "me" : ""} ${H && !p ? "waiting" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
         <div class="minis">${minis}</div>
-        <div class="av">${esc((nm[0] || "?").toUpperCase())}${u === dealerUid ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="av">${turn || (H && H.side && H.side.to === u && !R) ? ringHTML(t, H) : ""}${esc((nm[0] || "?").toUpperCase())}${u === dealerUid ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
         <div class="lbl"><b>${esc(nm)}</b>${status || money ? `<small class="num">${[status, money].filter(Boolean).join(" · ")}</small>` : ""}</div>
       </div>`;
     }).join("");
@@ -1506,7 +1608,7 @@ body.is-display .pc i { font-size: 32px; }
       center = `<b class="lobby">${n} seated</b><small>${isDealer() ? (n < 2 ? "Waiting for players to sit down" : "Deal when everyone is in") : "Waiting for the host to deal"}</small>`;
     }
     return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="Card table with ${n} players">
-      <div class="rail"></div><div class="center">${center}</div>${seatHTML}</div>`;
+      <div class="rail"></div><div class="center">${center}</div>${bets}${seatHTML}${fxLayer(pos)}${tableTools()}</div>`;
   }
 
   function myArea(t, H) {
@@ -1521,16 +1623,16 @@ body.is-display .pc i { font-size: 32px; }
     let h = `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""}">
       <div class="cardhead"><b>Your cards</b><span>${mine ? esc(labelOf(myHand.cards, H.variant, H.joker)) : p.out ? "Packed" : "Blind"}</span></div>
       <div class="tpcards big">${mine ? mine.map((c, k) => cardHTML(c, wild[k], 0, false, ev.used[k] ? "" : "unused")).join("")
-        : (openCard ? cardHTML(openCard, false, 0, false) : backHTML()) + backHTML().repeat(per - 1)}</div>`;
+        : (openCard ? cardHTML(openCard, false, 0, false) : backHTML()) + backHTML().repeat(per - 1)}
+        ${!mine && !p.out && !R ? `<button class="seebtn" data-act="tpgsee" ${busy}>SEE</button>` : ""}</div>`;
     if (myHand && myHand.n === H.n && myHand.peek) {
       const pc = myHand.peek.cards.map(parseCard), pw = handEval(myHand.peek.cards, H.variant, H.joker).wild;
       h += `<div class="peek"><small>Sideshow: ${esc(myHand.peek.name)} had ${esc(labelOf(myHand.peek.cards, H.variant, H.joker))}</small><div class="tpcards">${pc.map((c, k) => cardHTML(c, pw[k], 0, false)).join("")}</div></div>`;
     }
     let acts = "";
     if (!R && !p.out) {
-      if (!p.seen) acts += `<button class="btn ghost" data-act="tpgsee" ${busy}>See cards</button>`;
       if (H.side && H.side.to === user.uid) {
-        acts = `<p class="sheetnote"><b>${esc(nameOf(H.side.from))}</b> wants a sideshow with you. The weaker hand packs; on a tie, they pack.</p>
+        acts = `<p class="sheetnote"><b>${esc(nameOf(H.side.from))}</b> wants a sideshow with you. The weaker hand packs; on a tie, they pack. <span class="cd num" data-countdown></span></p>
           <div class="sharegrid"><button class="btn brass" data-act="tpgsideyes" ${busy}>Accept</button><button class="btn ghost" data-act="tpgsideno" ${busy}>Decline</button></div>`;
       } else if (H.side && H.side.from === user.uid) {
         acts += `<p class="sheetnote">Waiting for ${esc(nameOf(H.side.to))} to answer your sideshow…</p>`;
@@ -1551,7 +1653,7 @@ body.is-display .pc i { font-size: 32px; }
             acts += `<button class="btn ghost" data-act="tpgside" ${busy} ${ok ? "" : "disabled"}>Sideshow with ${esc(nameOf(prev))} ${rupee(unit)}${ok ? "" : " (still blind)"}</button>`;
           }
         }
-        acts = `<p class="yourturn">Your turn</p>` + acts;
+        acts = `<p class="yourturn">Your turn <span class="cd num" data-countdown></span></p>` + acts;
       } else {
         acts += `<p class="sheetnote">Waiting for ${esc(nameOf(H.turn))}…</p>`;
       }
@@ -1577,17 +1679,22 @@ body.is-display .pc i { font-size: 32px; }
       }).join("") + `</div>` : "");
   }
 
+  let hostOpen = null;      // { key, open } when the host opens/closes the dealer controls by hand
   function hostControls(t) {
     const H = t.hand;
     const between = !H || H.result;
     const st = t.settings;
-    return `<div class="card hostbox">
-      <div class="cardhead"><b>Dealer controls</b><span>Your phone runs the game</span></div>
+    // folded away while a hand is being played so the table fits; open between hands
+    const key = (H ? H.n : 0) + ":" + (between ? 1 : 0);
+    const open = hostOpen && hostOpen.key === key ? hostOpen.open : !!between;
+    return `<details class="card hostbox" id="hostbox" ${open ? "open" : ""}>
+      <summary class="cardhead"><b>Dealer controls</b><span>${between ? "Your phone runs the game" : (H && H.kind === "kfo" ? "Round" : "Hand") + " in play · keep this open"}</span></summary>
       <div class="hostgrid">
         <label for="tpgBoot">Boot<input type="number" inputmode="numeric" id="tpgBoot" value="${st.boot}" min="1" ${between ? "" : "disabled"}></label>
         <label for="tpgBlind">Blind rounds<input type="number" inputmode="numeric" id="tpgBlind" value="${st.blindRounds}" min="0" max="10" ${between ? "" : "disabled"}></label>
         <label for="tpgMax">Max chaal<input type="number" inputmode="numeric" id="tpgMax" value="${capOf(st) || ""}" placeholder="No cap" min="0" ${between ? "" : "disabled"}></label>
         <label for="tpgQuiet">Show for all after<select id="tpgQuiet" ${between ? "" : "disabled"}>${[0, 1, 2, 3, 4].map((k) => `<option value="${k}" ${k === quietOf(st) ? "selected" : ""}>${k === 0 ? "Never" : k + " quiet round" + (k > 1 ? "s" : "") + " at max"}</option>`).join("")}</select></label>
+        <label for="tpgTimer">Turn timer<select id="tpgTimer" ${between ? "" : "disabled"}>${[0, 15, 20, 30, 45, 60].map((k) => `<option value="${k}" ${k === turnSecsOf(st) ? "selected" : ""}>${k ? k + " seconds" : "Off"}</option>`).join("")}</select></label>
         <label for="tpgLimit">Pot limit<input type="number" inputmode="numeric" id="tpgLimit" value="${st.potLimit || ""}" placeholder="None" min="0" ${between ? "" : "disabled"}></label>
         <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}<option value="kfo" ${st.variant === "kfo" ? "selected" : ""}>${KFO.name}</option></select></label>
       </div>
@@ -1596,7 +1703,7 @@ body.is-display .pc i { font-size: 32px; }
         ${st.variant === "kfo" ? `<p class="sheetnote">${KFO.desc} Boot, blind rounds and chaal settings don't apply.</p>` : ""}
         ${between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
       </div>
-    </div>`;
+    </details>`;
   }
 
   function tpgSetting(id, val) {
@@ -1613,6 +1720,7 @@ body.is-display .pc i { font-size: 32px; }
       s.maxChaal = v;
     }
     if (id === "tpgQuiet") s.quietRounds = Math.max(0, Math.round(Number(val)) || 0);
+    if (id === "tpgTimer") s.turnSecs = Math.max(0, Math.round(Number(val)) || 0);
     if (id === "tpgVariant") s.variant = val;
     commitT();
   }
@@ -1662,7 +1770,7 @@ body.is-display .pc i { font-size: 32px; }
     K.round += 1;
     SEC = { n, hands, deck };
     SECRET.set(SEC).catch(() => {});
-    T.hand = { kind: "kfo", variant: "kfo", n, round: K.round, order, dealer: K.dealer, turn: order[0], acted: {}, kings: {}, left: {}, log: [], result: null };
+    T.hand = { kind: "kfo", variant: "kfo", n, round: K.round, order, dealer: K.dealer, turn: order[0], acted: {}, kings: {}, left: {}, log: [], result: null, turnAt: Date.now() };
     T.status = "hand";
     order.forEach((u) => HANDS.doc(u).set({ n, cards: hands[u], peek: null }).catch(() => {}));
     tpgLog(null, `Game ${K.game}, round ${K.round}. ${nameOf(K.dealer)} deals and plays last.`);
@@ -1747,9 +1855,11 @@ body.is-display .pc i { font-size: 32px; }
     const mine = user ? seats.indexOf(user.uid) : -1;
     if (mine > 0) seats = seats.slice(mine).concat(seats.slice(0, mine));
     const n = seats.length;
+    const pos = {}, bets = "";
     const seatHTML = seats.map((u, i) => {
       const ang = (90 + (i * 360) / n) * Math.PI / 180;
       const x = 50 + 41 * Math.cos(ang), y = 50 + 41 * Math.sin(ang);
+      pos[u] = { x: x.toFixed(2), y: y.toFixed(2) };
       const lives = K.lives[u] || 0;
       const inRound = H.order.includes(u) && !H.left[u];
       const turn = !R && H.turn === u;
@@ -1758,7 +1868,7 @@ body.is-display .pc i { font-size: 32px; }
       const status = !inRound ? (lives ? "Next round" : "Out") : R ? (lost ? "Lost a life" : "Safe") : H.acted[u] ? { stay: "Stayed", swap: "Swapped", blocked: "Blocked", draw: "Drew" }[H.acted[u]] : "";
       return `<div class="seat ${turn ? "turn" : ""} ${!lives || !inRound ? "out" : ""} ${R && R.winner === u ? "won" : ""} ${user && u === user.uid ? "me" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
         <div class="minis">${inRound ? (card ? miniCard(parseCard(card)) : `<span class="mc back"></span>`) : ""}</div>
-        <div class="av">${esc((nameOf(u)[0] || "?").toUpperCase())}${u === H.dealer ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="av">${turn ? ringHTML(t, H) : ""}${esc((nameOf(u)[0] || "?").toUpperCase())}${u === H.dealer ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
         <div class="lbl"><b>${esc(nameOf(u))}</b><small class="hearts ${lost ? "hit" : ""}">${hearts(lives)}${status ? " · " + status : ""}</small></div>
       </div>`;
     }).join("");
@@ -1768,7 +1878,7 @@ body.is-display .pc i { font-size: 32px; }
       ${R ? `<span class="turnline">${R.winner ? esc(nameOf(R.winner)) + " wins the game!" : esc(nameOf(R.loser)) + " loses a life"}</span>` : ""}
       ${last ? `<em>${last.who ? esc(last.who) + " " : ""}${esc(last.text)}</em>` : ""}`;
     return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="King Fuck Off table with ${n} players">
-      <div class="rail"></div><div class="center">${center}</div>${seatHTML}</div>`;
+      <div class="rail"></div><div class="center">${center}</div>${bets}${seatHTML}${fxLayer(pos)}${tableTools()}</div>`;
   }
 
   function kfoMyArea(t, H) {
@@ -1780,7 +1890,7 @@ body.is-display .pc i { font-size: 32px; }
     if (!R) {
       if (H.turn === user.uid) {
         const to = kfoNext(user.uid);
-        acts = `<p class="yourturn">Your turn</p><div class="sharegrid">
+        acts = `<p class="yourturn">Your turn <span class="cd num" data-countdown></span></p><div class="sharegrid">
           <button class="btn ghost" data-act="kfostay" ${busy}>Stay</button>
           ${isDlr ? `<button class="btn brass" data-act="kfodraw" ${busy}>Swap with deck</button>`
                   : `<button class="btn brass" data-act="kfoswap" ${busy}>Swap with ${esc(nameOf(to))}</button>`}</div>
@@ -1817,6 +1927,240 @@ body.is-display .pc i { font-size: 32px; }
     const ids = t.seats.map((s) => s.uid).filter((u) => K.lives[u] != null).sort((a, b) => (K.lives[b] || 0) - (K.lives[a] || 0));
     return `<div class="card"><div class="cardhead"><b>Lives · game ${K.game}</b><span>${K.over ? "Game over" : kfoAlive().length + " still in"}</span></div>` +
       ids.map((u) => `<div class="lrow"><div class="lname"><b>${esc(nameOf(u))}${user && u === user.uid ? ` <span class="tag">You</span>` : ""}${K.winner === u ? ` <span class="tag">Winner</span>` : ""}</b></div><span class="pamt hearts">${(K.lives[u] || 0) ? hearts(K.lives[u]) : "Out"}</span></div>`).join("") + `</div>`;
+  }
+
+  // ---------- live table extras: turn timer, reactions, chat, sounds, table effects ----------
+  // ---- sound (synthesised, so there are no files to load). Browsers only allow audio after the first tap.
+  const SND = (() => {
+    let ctx = null, muted = false;
+    try { muted = localStorage.getItem("chipbank.mute") === "1"; } catch (e) {}
+    const ac = () => {
+      if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      return ctx;
+    };
+    function tone(freq, dur, type, vol, when) {
+      const a = ac(); if (!a || muted) return;
+      const t0 = a.currentTime + (when || 0);
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = type || "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.1, t0); g.gain.exponentialRampToValueAtTime(0.0008, t0 + dur);
+      o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.03);
+    }
+    return {
+      unlock: () => { if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {}); },
+      chip: () => { tone(2100, 0.05, "square", 0.035); tone(2800, 0.05, "square", 0.03, 0.045); },
+      card: () => { tone(420, 0.07, "triangle", 0.07); tone(760, 0.06, "triangle", 0.05, 0.05); },
+      turn: () => { tone(880, 0.13, "sine", 0.13); tone(1320, 0.2, "sine", 0.13, 0.13); },
+      tick: () => tone(1250, 0.04, "square", 0.03),
+      pop: () => tone(660, 0.09, "sine", 0.08),
+      win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, "triangle", 0.1, i * 0.11)),
+      lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.22, "sine", 0.08, i * 0.12)),
+      toggle: () => { muted = !muted; try { localStorage.setItem("chipbank.mute", muted ? "1" : "0"); } catch (e) {} if (!muted) ac(); return muted; },
+      get muted() { return muted; },
+    };
+  })();
+  document.addEventListener("pointerdown", () => SND.unlock(), { passive: true });
+  const playVisible = () => (mode === "owner" ? tab === "play" : liveTab === "play") && !document.hidden;
+
+  // ---- turn timer. The dealer stamps H.turnAt (dealer clock) whenever the turn or a sideshow question changes.
+  // Other phones correct for clock difference using the gap between the dealer's write time and arrival.
+  const turnSecsOf = (st) => (st && st.turnSecs != null ? Number(st.turnSecs) : 30);
+  let clockSkew = 0, skewSeen = false;
+  function noteSkew(r) {
+    if (!r || !r.updatedAt || isDealer()) { if (isDealer()) clockSkew = 0; return; }
+    const est = Date.now() - r.updatedAt;
+    if (!skewSeen || est < clockSkew) { clockSkew = est; skewSeen = true; }
+  }
+  const turnKey = () => { const H = T && T.hand; return H ? [H.n, H.turn, H.side ? H.side.to : "", H.result ? 1 : 0].join("|") : ""; };
+  function stampTurn(before) { const H = T && T.hand; if (H && turnKey() !== before) H.turnAt = Date.now(); }
+  const whoActs = (H) => (!H || H.result ? null : H.side ? H.side.to : H.turn);
+  function timeLeft(t, H) {
+    const secs = turnSecsOf(t.settings);
+    if (!secs || !H || H.result || !H.turnAt) return null;
+    return Math.max(0, secs * 1000 - (Date.now() - clockSkew - H.turnAt));
+  }
+  const ringHTML = (t, H) => (turnSecsOf(t.settings) && H && H.turnAt
+    ? `<svg class="ring" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" pathLength="100"></circle></svg>` : "");
+  // the dealer acts for anyone whose time runs out: Pack in Teen Patti, Decline for a sideshow, Stay in King Fuck Off
+  setInterval(() => {
+    if (!isDealer() || !T || !T.hand || T.hand.result) return;
+    const secs = turnSecsOf(T.settings); if (!secs) return;
+    const H = T.hand, who = whoActs(H); if (!who) return;
+    if (!H.turnAt) { H.turnAt = Date.now(); return; }
+    if (Date.now() - H.turnAt < secs * 1000 + 800) return;
+    const type = H.kind === "kfo" ? "stay" : H.side ? "sideno" : "pack";
+    const before = turnKey();
+    tpgLog(who, "ran out of time");
+    applyMove(who, { type, n: H.n });
+    stampTurn(before);
+    if (T.hand.turnAt === H.turnAt && !T.hand.result) T.hand.turnAt = Date.now();   // never loop on the same player
+    commitT();
+  }, 1000);
+  // countdown ring and numbers update in place, without redrawing the table
+  let lastTickSec = null;
+  setInterval(() => {
+    if (!playVisible() || !T || !T.hand) return;
+    const H = T.hand, left = timeLeft(T, H);
+    if (left == null) return;
+    const secs = turnSecsOf(T.settings), frac = left / (secs * 1000);
+    document.querySelectorAll(".seat.turn .ring circle").forEach((c) => {
+      c.style.strokeDashoffset = String(100 - frac * 100);
+      c.style.stroke = frac > 0.5 ? "#7ef0b8" : frac > 0.25 ? "#f8c94c" : "#ff6b6b";
+    });
+    const s = Math.ceil(left / 1000);
+    document.querySelectorAll("[data-countdown]").forEach((el) => { el.textContent = s + "s"; el.classList.toggle("low", s <= 5); });
+    if (user && whoActs(H) === user.uid && s <= 5 && s > 0 && s !== lastTickSec) { lastTickSec = s; SND.tick(); }
+  }, 200);
+
+  // ---- table effects: action badges over seats, chips sliding into the pot, reactions and chat bubbles.
+  // Effects remember when they started so a redraw continues the animation instead of restarting it.
+  const FX = { badges: {}, chips: [], bubbles: {}, reacts: {}, payout: null };
+  let fxSeen = null;
+  function tagOf(text) {
+    const amt = (text.match(/₹[\d,]+/) || [""])[0];
+    const rules = [
+      [/^raised blind/, "RAISE " + amt, 1], [/^blind/, "BLIND " + amt, 1], [/^raised, chaal/, "RAISE " + amt, 1], [/^chaal/, "CHAAL " + amt, 1],
+      [/^saw their cards/, "SEEN", 0], [/^packed|^left the table/, "PACK", 0], [/^asked .* for a show/, "SHOW!", 1],
+      [/^asked .* for a sideshow/, "SIDESHOW?", 1], [/^declined/, "NO SIDESHOW", 0], [/^ran out of time/, "TIME UP", 0],
+      [/^stayed/, "STAY", 0], [/^swapped cards/, "SWAP", 0], [/^swapped their card/, "NEW CARD", 0], [/^showed a King/, "FUCK OFF! 👑", 0],
+    ];
+    for (const [re, label, bet] of rules) if (re.test(text)) return { label, bet: !!bet };
+    return null;
+  }
+  // called on every render: anything new in the hand log becomes an effect (and a sound)
+  function fxScan() {
+    const H = T && T.hand;
+    if (!H) { fxSeen = null; return; }
+    const key = H.n;
+    if (!fxSeen || fxSeen.n !== key) {
+      const fresh = fxSeen !== null;                     // a new hand while watching, not the page opening
+      fxSeen = { n: key, len: fresh ? 0 : H.log.length, result: fresh ? false : !!H.result, turn: null };
+      if (fresh && playVisible()) SND.card();
+    }
+    const now = Date.now();
+    for (let i = fxSeen.len; i < H.log.length; i++) {
+      const e = H.log[i]; if (!e.uid) continue;
+      const tg = tagOf(e.text); if (!tg) continue;
+      const prev = FX.badges[e.uid];
+      if (!(prev && prev.at === now && prev.label === "TIME UP")) FX.badges[e.uid] = { label: tg.label, at: now };
+      if (tg.bet) { FX.chips.push({ uid: e.uid, at: now }); if (playVisible()) SND.chip(); }
+      else if (playVisible() && tg.label === "SEEN") SND.card();
+    }
+    fxSeen.len = H.log.length;
+    if (H.result && !fxSeen.result) {
+      fxSeen.result = true;
+      const winners = H.result.winners || [];
+      FX.payout = { winners, at: now };
+      if (playVisible() && user) { if (winners.includes(user.uid)) SND.win(); else if (H.result.loser === user.uid || (H.p && H.p[user.uid])) SND.lose(); }
+    }
+    const turnNow = whoActs(H);
+    if (turnNow !== fxSeen.turn) {
+      fxSeen.turn = turnNow;
+      if (user && turnNow === user.uid && playVisible()) { SND.turn(); try { if (navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate && navigator.vibrate(120); } catch (e) {} }
+    }
+    FX.chips = FX.chips.filter((c) => now - c.at < 900);
+  }
+  const since = (at) => Date.now() - at;
+  function fxLayer(pos) {
+    const now = Date.now();
+    let h = `<div class="fx">`;
+    for (const [u, b] of Object.entries(FX.badges)) {
+      if (now - b.at > 2600 || !pos[u]) continue;
+      h += `<span class="badge" style="left:${pos[u].x}%;top:${pos[u].y}%;animation-delay:-${since(b.at)}ms">${esc(b.label)}</span>`;
+    }
+    for (const c of FX.chips) {
+      if (!pos[c.uid]) continue;
+      h += `<span class="flychip" style="--sx:${pos[c.uid].x}%;--sy:${pos[c.uid].y}%;animation-delay:-${since(c.at)}ms"></span>`;
+    }
+    if (FX.payout && now - FX.payout.at < 1600) {
+      FX.payout.winners.forEach((u) => { if (pos[u]) for (let k = 0; k < 4; k++) h += `<span class="flychip out" style="--ex:${pos[u].x}%;--ey:${pos[u].y}%;animation-delay:${k * 90 - since(FX.payout.at)}ms"></span>`; });
+    }
+    for (const [u, b] of Object.entries(FX.reacts).concat(Object.entries(FX.bubbles))) {
+      if (!pos[u]) continue;
+      const life = b.kind === "react" ? 2600 : 4500;
+      if (now - b.at > life) continue;
+      h += b.kind === "react"
+        ? `<span class="react" style="left:${pos[u].x}%;top:${pos[u].y}%;animation-delay:-${since(b.at)}ms">${esc(b.text)}</span>`
+        : `<span class="speech ${pos[u].y < 50 ? "below" : ""}" style="left:${pos[u].x}%;top:${pos[u].y}%;animation-delay:-${since(b.at)}ms">${esc(b.text)}</span>`;
+    }
+    return h + `</div>`;
+  }
+  // redraw once effects expire so they leave the screen
+  let fxTimer = null;
+  function fxLater(ms) { clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (playVisible()) render(); }, ms); }
+
+  // ---- reactions and chat (chipbank tpg_chat: one doc per message; anyone signed in can post as themselves)
+  const CHAT = fs.collection("tpg_chat");
+  let chatMsgs = [], chatSeenIds = null, chatOpen = false, reactOpen = false, chatUnread = 0;
+  const REACTS = ["👍", "😂", "😮", "😡", "🔥", "👏", "😭", "🙏", "🤑", "💀"];
+  const PHRASES = ["Nice hand!", "Bluff!", "Chal chal, jaldi!", "Pack kar de 😄", "All the best", "Seen? 👀", "Too good!", "One more round"];
+  function chatConnect() {
+    CHAT.orderBy("ts", "desc").limit(40).onSnapshot((qs) => {
+      const docs = qs.docs.map((d) => Object.assign({ id: d.id }, d.data())).reverse();
+      const first = chatSeenIds === null;
+      if (first) chatSeenIds = new Set();
+      docs.forEach((m) => {
+        if (chatSeenIds.has(m.id)) return;
+        chatSeenIds.add(m.id);
+        if (first) return;                                  // only messages that arrive while the page is open animate
+        if (user && m.uid === user.uid) return;             // my own: already shown the moment I sent it
+        (m.kind === "react" ? FX.reacts : FX.bubbles)[m.uid] = { kind: m.kind, text: m.text, at: Date.now() };
+        if (m.kind === "chat" && !chatOpen && !(user && m.uid === user.uid)) chatUnread++;
+        if (playVisible()) SND.pop();
+        fxLater(m.kind === "react" ? 2700 : 4600);
+      });
+      chatMsgs = docs.filter((m) => m.kind === "chat");
+      if (chatOpen) drawChatList();
+      if (playVisible()) render();
+    }, () => {});
+  }
+  function myTableName() { const s = T && T.seats.find((x) => user && x.uid === user.uid); return s ? s.name : cleanName((user && user.displayName || "Player").split(" ")[0]); }
+  function sendChat(kind, text) {
+    if (!user) { toast("Sign in to chat and react"); return; }
+    text = String(text || "").trim().slice(0, 140);
+    if (!text) return;
+    (kind === "react" ? FX.reacts : FX.bubbles)[user.uid] = { kind, text, at: Date.now() };   // show it straight away on my own screen
+    fxLater(kind === "react" ? 2700 : 4600);
+    render();
+    CHAT.add({ uid: user.uid, name: myTableName(), text, kind, ts: Date.now() }).catch(() => toast("Couldn't send that. Check your connection."));
+  }
+  function drawChatList() {
+    const el = document.getElementById("chatList"); if (!el) return;
+    el.innerHTML = chatMsgs.length ? chatMsgs.map((m) => `<div class="cmsg ${user && m.uid === user.uid ? "mine" : ""}"><b>${esc(m.name || "Someone")}</b><span>${esc(m.text)}</span><i class="num">${fmtTime(m.ts)}</i></div>`).join("")
+      : `<p class="sheetnote center">No messages yet. Say hi to the table.</p>`;
+    el.scrollTop = el.scrollHeight;
+  }
+  function openChat() {
+    chatOpen = true; chatUnread = 0; reactOpen = false;
+    const root = $("#sheetRoot");
+    root.innerHTML = `<div class="scrim" data-act="closesheet"></div>
+      <div class="sheet chatsheet" role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+        <h3 id="chatTitle">Table chat</h3>
+        <div class="chatlist" id="chatList"></div>
+        <div class="phrases">${PHRASES.map((p) => `<button class="pick" data-phrase="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+        <form class="addrow" id="chatForm" autocomplete="off">
+          <input type="text" id="chatInput" maxlength="140" placeholder="${user ? "Message the table" : "Sign in to chat"}" aria-label="Message" ${user ? "" : "disabled"} enterkeyhint="send">
+          <button class="btn brass" type="submit" ${user ? "" : "disabled"}>Send</button>
+        </form>
+      </div>`;
+    drawChatList();
+    root.onclick = (ev) => {
+      if (ev.target.closest("[data-act=closesheet]")) { root.innerHTML = ""; chatOpen = false; render(); return; }
+      const ph = ev.target.closest("[data-phrase]"); if (ph) sendChat("chat", ph.dataset.phrase);
+    };
+    root.oninput = null;
+    root.onsubmit = (ev) => { ev.preventDefault(); const i = $("#chatInput"); sendChat("chat", i.value); i.value = ""; i.focus(); };
+    render();
+  }
+  function tableTools() {
+    return `<div class="tabletools">
+        <button class="ttool" data-act="snd" aria-label="${SND.muted ? "Turn sound on" : "Turn sound off"}">${SND.muted ? "🔇" : "🔊"}</button>
+        <span class="spacer"></span>
+        <button class="ttool" data-act="react" aria-label="React" aria-expanded="${reactOpen}">😀</button>
+        <button class="ttool" data-act="chat" aria-label="Open chat">💬${chatUnread ? `<i class="unread num">${chatUnread > 9 ? "9+" : chatUnread}</i>` : ""}</button>
+      </div>
+      ${reactOpen ? `<div class="reactbar" role="menu">${REACTS.map((r) => `<button data-react="${r}" role="menuitem" aria-label="React ${r}">${r}</button>`).join("")}</div>` : ""}`;
   }
 
   // ---------- share sheet ----------
@@ -2199,6 +2543,8 @@ body.is-display .pc i { font-size: 32px; }
     // keep whatever the person is typing when a live update re-draws the screen
     const a = document.activeElement;
     const keep = a && a.id && (a.tagName === "INPUT") ? { id: a.id, v: a.value, s: a.selectionStart } : null;
+    fxScan();
+    document.body.classList.toggle("playmode", (mode === "owner" ? tab === "play" : liveTab === "play"));
     header();
     if (mode !== "owner") $("#view").innerHTML = liveTab === "tp" ? liveHeadHTML() + viewTP(false) : liveTab === "play" ? liveHeadHTML() + viewPlay() : viewLive();
     else $("#view").innerHTML = tab === "table" ? viewTable() : tab === "cash" ? viewCash() : tab === "play" ? viewPlay() : viewTP(true);
@@ -2307,9 +2653,14 @@ body.is-display .pc i { font-size: 32px; }
   });
 
   $("#view").addEventListener("click", async (e) => {
+    const rb = e.target.closest("[data-react]");
+    if (rb) { reactOpen = false; sendChat("react", rb.dataset.react); return; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
     if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "snd") { SND.toggle(); render(); }
+    else if (act === "react") { reactOpen = !reactOpen; render(); }
+    else if (act === "chat") openChat();
     else if (act === "kfostay") sendMove("stay");
     else if (act === "kfoswap") sendMove("swap");
     else if (act === "kfodraw") sendMove("draw");
@@ -2392,11 +2743,12 @@ body.is-display .pc i { font-size: 32px; }
       if (v > 0) { S.settings.buyIn = v; save(); header(); }
     }
   });
-  $("#view").addEventListener("toggle", (e) => { if (e.target.id === "picker") rosterOpen = e.target.open; }, true);
+  $("#view").addEventListener("toggle", (e) => {
+    if (e.target.id === "hostbox" && T) { const H = T.hand; hostOpen = { key: (H ? H.n : 0) + ":" + (!H || H.result ? 1 : 0), open: e.target.open }; } if (e.target.id === "picker") rosterOpen = e.target.open; }, true);
   $("#view").addEventListener("change", (e) => {
     if (e.target.id === "buyInSetting") render();
     if (e.target.id === "tpVariant") { S.settings.tpVariant = e.target.value; save(); render(); }
-    if (/^tpg(Boot|Blind|Limit|Variant|Max|Quiet)$/.test(e.target.id)) tpgSetting(e.target.id, e.target.value);
+    if (/^tpg(Boot|Blind|Limit|Variant|Max|Quiet|Timer)$/.test(e.target.id)) tpgSetting(e.target.id, e.target.value);
   });
 
   setInterval(() => {
