@@ -618,6 +618,23 @@ body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-
 .felt.showdown .rail { box-shadow: inset 0 0 0 3px #c9a24a, inset 0 0 60px rgba(0,0,0,.55), 0 0 0 3px #c9a24a, 0 0 0 7px #2a170a, 0 0 40px rgba(248, 201, 76, .25), 0 22px 50px rgba(0,0,0,.55); }
 .felt.showdown:not(.kfo) .seat:not(.won) { opacity: .55; }
 body.playmode .myhand.rest { position: static; box-shadow: none; }
+/* ---- private rooms ---- */
+.roomcard { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.roomcard b { display: block; font-family: var(--font-display); font-size: 19px; }
+.roomcard small { color: var(--muted); font-size: 13px; }
+.roomform { display: flex; flex-direction: column; gap: 8px; }
+.codeinput { font-family: var(--font-display); font-weight: 800; font-size: 22px !important; letter-spacing: .3em; text-transform: uppercase; text-align: center; }
+.roomrow { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--line); text-align: left; color: var(--fg); }
+.roomrow:last-child { border-bottom: 0; }
+.roomrow .lname small { color: var(--muted); font-size: 13px; letter-spacing: .06em; }
+.roomrow .go { color: var(--mint-text); font-weight: 800; font-size: 14px; }
+.roombar { display: flex; align-items: center; gap: 10px; }
+.roombar .ttool { font-size: 26px; line-height: 1; padding-bottom: 3px; }
+.roombar .rb-text { flex: 1; min-width: 0; }
+.roombar .rb-text b { display: block; font-family: var(--font-display); font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roombar .rb-text small { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+.roombar .btn { padding: 9px 16px; font-size: 15px; }
+.bigcode { align-self: center; font-family: var(--font-display); font-weight: 800; font-size: 40px; letter-spacing: .25em; padding: 4px 4px 4px 14px; border: 2px dashed var(--line); border-radius: 14px; }
 </style>
 </head>
 <body>
@@ -677,7 +694,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v3.1.0";
+  const APP_VERSION = "v3.2.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1194,10 +1211,56 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   // The host's phone is the dealer. It shuffles, keeps the deck, applies every move and judges hands.
   // Players send moves through their own tpg_moves/{uid} doc. A player's cards are written to their
   // private tpg_hands/{uid} doc only when they choose to see them, so a blind player can't peek early.
-  const TPG = fs.collection("tpg").doc("table");
-  const SECRET = fs.collection("tpg_secret").doc("deck");
-  const MOVES = fs.collection("tpg_moves");
-  const HANDS = fs.collection("tpg_hands");
+  // Every online game lives in a private room: tpg_rooms/{code}. ROOM is the room open on this phone.
+  const ROOM_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+  let ROOM = null, TPG = null, HANDS = null, CHAT = null;
+  const SECRET = null, MOVES = null;            // old phone-dealer paths, unused now that the server deals
+  let tableUnsub = null, chatUnsub = null, roomMissing = false;
+  let recentRooms = [];
+  try { recentRooms = JSON.parse(localStorage.getItem("chipbank.rooms") || "[]"); } catch (e) {}
+  function rememberRoom(code, name) {
+    recentRooms = [{ code, name: name || (recentRooms.find((x) => x.code === code) || {}).name || "", at: Date.now() }].concat(recentRooms.filter((x) => x.code !== code)).slice(0, 6);
+    try { localStorage.setItem("chipbank.rooms", JSON.stringify(recentRooms)); } catch (e) {}
+  }
+  const roomLink = (code) => `${LIVE_URL}?room=${code}`;
+  function setRoomURL(code) {
+    try { window.history.replaceState(null, "", code ? `${location.pathname}?room=${code}${location.hash}` : location.pathname + location.hash); } catch (e) {}
+  }
+  function closeRoomSubs() {
+    if (tableUnsub) { tableUnsub(); tableUnsub = null; }
+    if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+    if (handUnsub) { handUnsub(); handUnsub = null; }
+  }
+  function openRoom(code) {
+    code = String(code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!ROOM_RE.test(code)) { toast("Room codes are 6 letters and numbers, like K7P2QX"); return; }
+    closeRoomSubs();
+    ROOM = code;
+    TPG = fs.collection("tpg_rooms").doc(code);
+    HANDS = fs.collection("tpg_rooms").doc(code).collection("hands");
+    CHAT = fs.collection("tpg_rooms").doc(code).collection("chat");
+    T = null; tLoaded = false; myHand = null; roomMissing = false;
+    chatMsgs = []; chatSeenIds = null; chatUnread = 0; fxSeen = null;
+    FX.badges = {}; FX.chips = []; FX.bubbles = {}; FX.reacts = {}; FX.payout = null;
+    skewFirst = true;
+    rememberRoom(code);
+    setRoomURL(code);
+    tab = "play"; liveTab = "play";
+    subscribeRoom();
+    subscribeHand();
+    render();
+  }
+  function closeRoom() {
+    closeRoomSubs();
+    ROOM = null; TPG = HANDS = CHAT = null; T = null; myHand = null; roomMissing = false;
+    setRoomURL(null);
+    render();
+  }
+  function subscribeHand() {
+    if (handUnsub) { handUnsub(); handUnsub = null; }
+    myHand = null;
+    if (user && HANDS) handUnsub = HANDS.doc(user.uid).onSnapshot((s) => { myHand = s.exists ? s.data() : null; render(); }, () => {});
+  }
   let T = null;                 // public table state
   let tLoaded = false;
   let SEC = null;               // dealer only: { n, hands: { uid: [cards] } }
@@ -1217,13 +1280,16 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   // The dealer now runs on the server (Cloud Function `tpg`), so no phone deals. The host is an admin.
   const isDealer = () => false;
   const isAdmin = () => !!(user && HOSTS.includes(user.email));
+  // in a room, its creator is its host too
+  const canAdmin = () => isAdmin() || !!(user && T && T.owner === user.uid);
   const fnTpg = firebase.app().functions("asia-south1").httpsCallable("tpg");
   const botSeat = (uid) => String(uid || "").startsWith("cpu_");
   function callTpg(action, extra) {
     if (!user) { toast("Sign in to play"); return Promise.resolve(null); }
     const seq = Math.max(Date.now(), lastLocalSeq + 1); lastLocalSeq = seq;
     myPending = seq; render();
-    const data = Object.assign({ action, n: T && T.hand ? T.hand.n : 0 }, extra || {});
+    if (!ROOM && action !== "create") { toast("Open a room first"); return Promise.resolve(null); }
+    const data = Object.assign({ action, room: ROOM, n: T && T.hand ? T.hand.n : 0 }, extra || {});
     const t0 = Date.now();
     return fnTpg(data).then((r) => { stampSkew(t0, r); return r.data; }, (e) => {
       toast(e && e.code === "functions/unauthenticated" ? "Sign in to play" : (e && e.message) || "Couldn't reach the table. Check your connection.");
@@ -1237,11 +1303,18 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   const labelOf = (cards, variant, joker) => handEval(cards, variant, joker).label;
 
   // ---- connection ----
+  // opening the app with ?room=CODE goes straight to that room
   function tpgConnect() {
+    const q = new URLSearchParams(location.search).get("room");
+    if (q) openRoom(q);
+  }
+  function subscribeRoom() {
     chatConnect();
-    TPG.onSnapshot((snap) => {
+    tableUnsub = TPG.onSnapshot((snap) => {
       if (snap.metadata.hasPendingWrites) return;
       const r = snap.exists ? snap.data() : null;
+      roomMissing = !snap.exists;
+      if (r) rememberRoom(ROOM, r.name);
       noteSkew(r);
       const prevN = T && T.hand ? T.hand.n : null;
       if (!isDealer() || !T || (r && (r.updatedAt || 0) > (T.updatedAt || 0))) T = r;
@@ -1269,7 +1342,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     if (movesUnsub) { movesUnsub(); movesUnsub = null; }
     myHand = null;
     if (!u) { render(); return; }
-    handUnsub = HANDS.doc(u.uid).onSnapshot((s) => { myHand = s.exists ? s.data() : null; render(); }, () => {});
+    subscribeHand();
     if (isDealer()) {
       SECRET.get().then((s) => { if (s.exists && !SEC) SEC = s.data(); }).catch(() => {});
       movesUnsub = MOVES.onSnapshot((qs) => {
@@ -1541,16 +1614,76 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   }
 
   // ---- screen ----
+  function lobbyHTML() {
+    const signin = !user ? `<div class="card tpjoin"><div><b>Play Teen Patti online</b><small>Everyone plays on their own phone and only you see your cards. Sign in with Google to create or join a room.</small></div><button class="btn brass" data-act="signin">Sign in to play</button></div>` : "";
+    const guess = cleanName((me && me.name) || (user && user.displayName || "").split(" ")[0]);
+    return signin + `
+      <div class="card roomcard">
+        <div><b>Start a private table</b><small>You get a code and a link to send your friends. Only people with the code can join.</small></div>
+        <form id="roomCreateForm" class="roomform" autocomplete="off">
+          <input type="text" id="roomSeatName" placeholder="Your name" aria-label="Your name" value="${esc(guess)}" maxlength="20" ${user ? "" : "disabled"}>
+          <input type="text" id="roomName" placeholder="Table name (optional)" aria-label="Table name" maxlength="30" ${user ? "" : "disabled"}>
+          <button class="btn brass block" type="submit" ${user && !myPending ? "" : "disabled"}>Create a private room</button>
+        </form>
+      </div>
+      <form class="card roomcard" id="roomJoinForm" autocomplete="off">
+        <div><b>Join a room</b><small>Type the 6-character code a friend sent you.</small></div>
+        <div class="addrow"><input type="text" id="roomCode" placeholder="K7P2QX" aria-label="Room code" maxlength="6" autocapitalize="characters" spellcheck="false" class="codeinput">
+        <button class="btn brass" type="submit">Join</button></div>
+      </form>
+      ${recentRooms.length ? `<div class="card"><div class="cardhead"><b>Your recent rooms</b><span>On this phone</span></div>` + recentRooms.map((x) =>
+        `<button class="lrow roomrow" data-act="roomopen" data-code="${esc(x.code)}"><div class="lname"><b>${esc(x.name || "Private table")}</b><small class="num">${esc(x.code)} · ${fmtDate(x.at)}</small></div><span class="go">Open ›</span></button>`).join("") + `</div>` : ""}`;
+  }
+  function roomBarHTML() {
+    return `<div class="roombar">
+        <button class="ttool" data-act="roomleave" aria-label="Back to rooms">‹</button>
+        <div class="rb-text"><b>${esc((T && T.name) || "Private table")}</b><small>Room <span class="num">${esc(ROOM)}</span>${T ? ` · ${T.seats.length} seated` : ""}</small></div>
+        <button class="btn brass" data-act="roominvite">Invite</button>
+      </div>`;
+  }
+  function openInviteSheet() {
+    if (!ROOM) return;
+    const url = roomLink(ROOM);
+    const msg = `Join my Teen Patti table on Chip Bank: ${url} (room code ${ROOM})`;
+    const root = $("#sheetRoot");
+    root.innerHTML = `<div class="scrim" data-act="closesheet"></div>
+      <div class="sheet share" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+        <h3 id="sheetTitle">Invite friends</h3>
+        <p class="sheetnote">Send the link, or read out the code. Friends sign in with Google and sit down.</p>
+        <div class="bigcode num" aria-label="Room code">${esc(ROOM)}</div>
+        <div class="qrbox"><div id="qr" aria-label="QR code for the room link"></div></div>
+        <div class="linkrow"><span class="num">${esc(url.replace(/^https?:\/\//, ""))}</span><button class="btn ghost" id="copyLink">Copy</button></div>
+        <div class="sharegrid">
+          <button class="btn ghost" id="nativeShare">Share link</button>
+          <a class="btn ghost" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a>
+        </div>
+      </div>`;
+    try { new QRCode(document.getElementById("qr"), { text: url, width: 184, height: 184, colorDark: "#0b0f0d", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {}
+    root.onclick = async (ev) => {
+      if (ev.target.closest("[data-act=closesheet]")) { root.innerHTML = ""; return; }
+      if (ev.target.closest("#copyLink")) { try { await navigator.clipboard.writeText(msg); toast("Invite copied"); } catch (e) { toast("Couldn't copy. Press and hold the link to copy it."); } }
+      if (ev.target.closest("#nativeShare")) {
+        if (navigator.share) { try { await navigator.share({ title: "Join my Teen Patti table", text: msg, url }); } catch (e) {} }
+        else { try { await navigator.clipboard.writeText(msg); toast("Invite copied"); } catch (e) {} }
+      }
+    };
+    root.oninput = null;
+  }
+
   function viewPlay() {
     let h = `<section class="tpg">`;
+    if (!ROOM) return h + lobbyHTML() + `</section>`;
+    h += roomBarHTML();
+    if (roomMissing) return h + `<div class="empty"><strong>There's no room ${esc(ROOM)}</strong>It may have expired after 14 days without a game, or the code has a typo. <button class="linkbtn" data-act="roomleave">Back to rooms</button></div></section>`;
+    if (!tLoaded) return h + `<div class="empty"><strong>Opening the table…</strong></div></section>`;
     if (!user) {
-      return h + `<div class="card tpjoin"><div><b>Play Teen Patti online</b><small>Everyone plays on their own phone and only you see your cards. Sign in with Google so the table knows it's you.</small></div><button class="btn brass" data-act="signin">Sign in to play</button></div></section>`;
+      return h + `<div class="card tpjoin"><div><b>Sign in to play at this table</b><small>You can watch without signing in. To sit down, sign in with Google.</small></div><button class="btn brass" data-act="signin">Sign in to play</button></div>` + (T ? tableHTML(T, T.hand && T.hand.kind !== "kfo" ? T.hand : null) : "") + `</section>`;
     }
     const dealer = isDealer();
     const t = T || tpgDefaults();
     const H = t.hand;
     const seated = t.seats.find((s) => s.uid === user.uid);
-    if (seated || isAdmin()) h += hostControls(t);
+    if (seated || canAdmin()) h += hostControls(t);
     if (!seated) {
       const guess = cleanName((me && me.name) || (user.displayName || "").split(" ")[0]);
       h += `<form class="card tpjoin" id="tpgJoinForm" autocomplete="off"><div><b>Take a seat</b><small>${H && !H.result ? "You'll be dealt in from the next hand." : "Pick the name everyone knows you by."}</small></div>
@@ -1583,7 +1716,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
           const v = t.scores[s.uid] || 0;
           return `<div class="lrow"><div class="lname"><b>${esc(s.name)}${s.uid === user.uid ? ` <span class="tag">You</span>` : ""}</b></div>
             <span class="pamt num ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : v < 0 ? "−" : ""}${rupee(Math.abs(v))}</span>
-            ${(isAdmin() || (seated && s.bot)) && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
+            ${(canAdmin() || (seated && s.bot)) && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
         }).join("") + `</div>`;
       if (seated && (!H || H.result || (H.kind === "kfo" ? !H.order.includes(user.uid) : !H.p[user.uid] || H.p[user.uid].out))) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
     }
@@ -1755,7 +1888,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     const key = (H ? H.n : 0) + ":" + (between ? 1 : 0);
     const open = hostOpen && hostOpen.key === key ? hostOpen.open : !!between;
     return `<details class="card hostbox" id="hostbox" ${open ? "open" : ""}>
-      <summary class="cardhead"><b>Table controls</b><span>${between ? (isAdmin() ? "You're the host" : "Anyone seated can deal") : (H && H.kind === "kfo" ? "Round" : "Hand") + " in play"}</span></summary>
+      <summary class="cardhead"><b>Table controls</b><span>${between ? (canAdmin() ? "You're the host" : "Anyone seated can deal") : (H && H.kind === "kfo" ? "Round" : "Hand") + " in play"}</span></summary>
       <div class="hostgrid">
         <label for="tpgBoot">Boot<input type="number" inputmode="numeric" id="tpgBoot" value="${st.boot}" min="1" ${between ? "" : "disabled"}></label>
         <label for="tpgBlind">Blind rounds<input type="number" inputmode="numeric" id="tpgBlind" value="${st.blindRounds}" min="0" max="10" ${between ? "" : "disabled"}></label>
@@ -1767,10 +1900,10 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
       </div>
       <div class="tpadd">
         ${between ? `<div class="sharegrid"><button class="btn ghost" data-act="tpgcpu" ${t.seats.length >= 17 ? "disabled" : ""}>+ Add CPU player</button><button class="btn ghost" data-act="tpgsolo">Practice vs 3 CPUs</button></div>
-          <button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${st.variant === "kfo" ? (!t.kfo || t.kfo.over ? (t.seats.length < 3 ? "Needs 3 players to start" : "Start a new game") : "Deal next round") : H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">${H && H.kind === "kfo" ? "Round" : "Hand"} in play.</p>${isAdmin() ? `<button class="linkbtn danger" data-act="tpgend">${armed === "tpgend" ? "Tap again to cancel this hand (nobody wins or loses)" : "Cancel this hand"}</button>` : ""}`}
+          <button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${st.variant === "kfo" ? (!t.kfo || t.kfo.over ? (t.seats.length < 3 ? "Needs 3 players to start" : "Start a new game") : "Deal next round") : H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">${H && H.kind === "kfo" ? "Round" : "Hand"} in play.</p>${canAdmin() ? `<button class="linkbtn danger" data-act="tpgend">${armed === "tpgend" ? "Tap again to cancel this hand (nobody wins or loses)" : "Cancel this hand"}</button>` : ""}`}
         ${st.variant === "kfo" ? `<p class="sheetnote">${KFO.desc} Boot, blind rounds and chaal settings don't apply.</p>` : ""}
-        ${isAdmin() && between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
-        ${isAdmin() ? `<button class="linkbtn" data-act="tpgclearchat">${armed === "tpgclearchat" ? "Tap again to delete all chat messages" : "Clear chat"}</button>` : ""}
+        ${canAdmin() && between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
+        ${canAdmin() ? `<button class="linkbtn" data-act="tpgclearchat">${armed === "tpgclearchat" ? "Tap again to delete all chat messages" : "Clear chat"}</button>` : ""}
       </div>
     </details>`;
   }
@@ -2053,14 +2186,15 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   setInterval(() => {
     if (!user || !T || !T.hand || T.hand.result || document.hidden) return;
     const H = T.hand, who = whoActs(H); if (!who) return;
-    if (!T.seats.some((x) => x.uid === user.uid) && !isAdmin()) return;
+    if (!T.seats.some((x) => x.uid === user.uid) && !canAdmin()) return;
     const el = Date.now() - clockSkew - (H.turnAt || 0);
     const secs = turnSecsOf(T.settings);
     const due = botSeat(who) ? el > 1300 : !!secs && el > secs * 1000 + 1200;
     if (!due || Date.now() < lastNudge) return;
     lastNudge = Date.now() + 2200 + Math.random() * 900;     // spread the phones out
     const t0 = Date.now();
-    fnTpg({ action: "tick" }).then((r) => stampSkew(t0, r)).catch(() => {});
+    if (!ROOM) return;
+    fnTpg({ action: "tick", room: ROOM }).then((r) => stampSkew(t0, r)).catch(() => {});
   }, 500);
   // countdown ring and numbers update in place, without redrawing the table
   let lastTickSec = null;
@@ -2156,12 +2290,13 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   function fxLater(ms) { clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (playVisible()) render(); }, ms); }
 
   // ---- reactions and chat (chipbank tpg_chat: one doc per message; anyone signed in can post as themselves)
-  const CHAT = fs.collection("tpg_chat");
+  // CHAT (the open room's chat collection) is set by openRoom()
   let chatMsgs = [], chatSeenIds = null, chatOpen = false, reactOpen = false, chatUnread = 0;
   const REACTS = ["👍", "😂", "😮", "😡", "🔥", "👏", "😭", "🙏", "🤑", "💀"];
   const PHRASES = ["Nice hand!", "Bluff!", "Chal chal, jaldi!", "Pack kar de 😄", "All the best", "Seen? 👀", "Too good!", "One more round"];
   function chatConnect() {
-    CHAT.orderBy("ts", "desc").limit(40).onSnapshot((qs) => {
+    if (!CHAT) return;
+    chatUnsub = CHAT.orderBy("ts", "desc").limit(40).onSnapshot((qs) => {
       const docs = qs.docs.map((d) => Object.assign({ id: d.id }, d.data())).reverse();
       const first = chatSeenIds === null;
       if (first) chatSeenIds = new Set();
@@ -2188,6 +2323,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     (kind === "react" ? FX.reacts : FX.bubbles)[user.uid] = { kind, text, at: Date.now() };   // show it straight away on my own screen
     fxLater(kind === "react" ? 2700 : 4600);
     render();
+    if (!CHAT) return;
     CHAT.add({ uid: user.uid, name: myTableName(), text, kind, ts: Date.now() }).catch(() => toast("Couldn't send that. Check your connection."));
   }
   function drawChatList() {
@@ -2711,6 +2847,14 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   $("#view").addEventListener("submit", (e) => {
     if (e.target.id === "tpAddForm") { e.preventDefault(); const i = $("#tpAddName"); lobbyAdd(i.value).then(() => { const n = $("#tpAddName"); if (n) { n.value = ""; n.focus(); } }); return; }
     if (e.target.id === "tpJoinForm") { e.preventDefault(); tpJoin($("#tpJoinName").value); return; }
+    if (e.target.id === "roomJoinForm") { e.preventDefault(); openRoom($("#roomCode").value); return; }
+    if (e.target.id === "roomCreateForm") {
+      e.preventDefault();
+      const seatName = cleanName($("#roomSeatName").value);
+      if (!seatName) { toast("Type your name first"); return; }
+      callTpg("create", { seatName, name: $("#roomName").value }).then((res) => { if (res && res.code) { openRoom(res.code); setTimeout(openInviteSheet, 400); } });
+      return;
+    }
     if (e.target.id === "tpgJoinForm") { e.preventDefault(); const nm = cleanName($("#tpgName").value); if (!nm) { toast("Type your name to sit down"); return; } sendMove("join", { name: nm }); return; }
     if (e.target.id !== "addForm") return;
     e.preventDefault();
@@ -2723,6 +2867,9 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const id = b.dataset.id, act = b.dataset.act;
     if (act === "livetab") { liveTab = b.dataset.lt; render(); }
+    else if (act === "roomopen") openRoom(b.dataset.code);
+    else if (act === "roomleave") closeRoom();
+    else if (act === "roominvite") openInviteSheet();
     else if (act === "snd") { SND.toggle(); render(); }
     else if (act === "react") { reactOpen = !reactOpen; render(); }
     else if (act === "chat") openChat();
