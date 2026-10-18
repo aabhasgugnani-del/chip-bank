@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -594,6 +595,9 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
 .hostbox label, .hostbox input, .hostbox select { min-width: 0; width: 100%; }
 .sharegrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .tpgacts .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+body.playmode .myhand .tpcards.big .pc { width: 40px; height: 56px; }
+body.playmode .myhand .tpcards.big .pc i { font-size: 19px; margin-top: 7px; }
+body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-space: normal; line-height: 1.15; overflow: visible; text-overflow: clip; }
 </style>
 </head>
 <body>
@@ -653,7 +657,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v2.7.0";
+  const APP_VERSION = "v3.0.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1190,7 +1194,22 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   const quietOf = (st) => (st && st.quietRounds != null ? Number(st.quietRounds) : 2);
   const atCap = (st, H) => capOf(st) > 0 && H.stake * 2 >= capOf(st);
   const raisedStake = (st, stake) => (capOf(st) > 0 ? Math.min(stake * 2, capOf(st) / 2) : stake * 2);
-  const isDealer = () => !!(user && HOSTS.includes(user.email) && VIEW === "app");
+  // The dealer now runs on the server (Cloud Function `tpg`), so no phone deals. The host is an admin.
+  const isDealer = () => false;
+  const isAdmin = () => !!(user && HOSTS.includes(user.email));
+  const fnTpg = firebase.app().functions("asia-south1").httpsCallable("tpg");
+  const botSeat = (uid) => String(uid || "").startsWith("cpu_");
+  function callTpg(action, extra) {
+    if (!user) { toast("Sign in to play"); return Promise.resolve(null); }
+    const seq = Math.max(Date.now(), lastLocalSeq + 1); lastLocalSeq = seq;
+    myPending = seq; render();
+    const data = Object.assign({ action, n: T && T.hand ? T.hand.n : 0 }, extra || {});
+    const t0 = Date.now();
+    return fnTpg(data).then((r) => { stampSkew(t0, r); return r.data; }, (e) => {
+      toast(e && e.code === "functions/unauthenticated" ? "Sign in to play" : (e && e.message) || "Couldn't reach the table. Check your connection.");
+      return null;
+    }).finally(() => { if (myPending === seq) { myPending = 0; render(); } });
+  }
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const nameOf = (uid) => { const s = T && T.seats.find((x) => x.uid === uid); return s ? s.name : "Someone"; };
   const cleanName = (n) => String(n || "").trim().replace(/\s+/g, " ").slice(0, 20);
@@ -1258,7 +1277,8 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isDealer()) keepAwake(); });
 
   // ---- sending moves ----
-  function sendMove(type, extra) {
+  function sendMove(type, extra) { return callTpg(type, extra); }
+  function sendMoveOld(type, extra) {
     if (!user) { toast("Sign in to play"); return; }
     const seq = Math.max(Date.now(), lastLocalSeq + 1); lastLocalSeq = seq;
     const m = Object.assign({ seq, type, n: T && T.hand ? T.hand.n : 0, ts: Date.now() }, extra || {});
@@ -1510,10 +1530,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
     const t = T || tpgDefaults();
     const H = t.hand;
     const seated = t.seats.find((s) => s.uid === user.uid);
-    if (!dealer && (!t.hostAlive || Date.now() - t.hostAlive > 70000)) {
-      h += `<div class="check warn"><b>The dealer is offline.</b> The host's phone needs Chip Bank open for the game to run.</div>`;
-    }
-    if (dealer) h += hostControls(t);
+    if (seated || isAdmin()) h += hostControls(t);
     if (!seated) {
       const guess = cleanName((me && me.name) || (user.displayName || "").split(" ")[0]);
       h += `<form class="card tpjoin" id="tpgJoinForm" autocomplete="off"><div><b>Take a seat</b><small>${H && !H.result ? "You'll be dealt in from the next hand." : "Pick the name everyone knows you by."}</small></div>
@@ -1546,7 +1563,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
           const v = t.scores[s.uid] || 0;
           return `<div class="lrow"><div class="lname"><b>${esc(s.name)}${s.uid === user.uid ? ` <span class="tag">You</span>` : ""}</b></div>
             <span class="pamt num ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : v < 0 ? "−" : ""}${rupee(Math.abs(v))}</span>
-            ${dealer && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
+            ${(isAdmin() || (seated && s.bot)) && (!H || H.result) ? `<button class="x" data-act="tpgkick" data-id="${esc(s.uid)}" aria-label="Remove ${esc(s.name)}">×</button>` : ""}</div>`;
         }).join("") + `</div>`;
       if (seated && (!H || H.result || (H.kind === "kfo" ? !H.order.includes(user.uid) : !H.p[user.uid] || H.p[user.uid].out))) h += `<button class="linkbtn center" data-act="tpgleave">Leave the table</button>`;
     }
@@ -1571,7 +1588,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
       pos[u] = { x: x.toFixed(2), y: y.toFixed(2) };
       const p = H && H.p[u];
       // Zynga-style: what each player has put in sits as a chip in front of their seat
-      if (p && !p.out && !R) bets += `<span class="bet num" style="left:${(50 + 30 * Math.cos(ang)).toFixed(2)}%;top:${(50 + (Math.sin(ang) < 0 ? 21 : 27) * Math.sin(ang)).toFixed(2)}%"><i></i>${rupee(p.put)}</span>`;
+      if (p && !p.out && !R) bets += `<span class="bet num" style="left:${(50 + 30 * Math.cos(ang)).toFixed(2)}%;top:${(50 + (Math.sin(ang) < 0 ? 21 : 19) * Math.sin(ang)).toFixed(2)}%"><i></i>${rupee(p.put)}</span>`;
       const turn = H && !R && H.turn === u;
       const won = R && R.winners.includes(u);
       const shown = R && R.shown && R.shown[u];
@@ -1584,14 +1601,14 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
       const nm = nameOf(u);
       return `<div class="seat ${turn ? "turn" : ""} ${p && p.out ? "out" : ""} ${won ? "won" : ""} ${user && u === user.uid ? "me" : ""} ${H && !p ? "waiting" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
         <div class="minis">${minis}</div>
-        <div class="av">${turn || (H && H.side && H.side.to === u && !R) ? ringHTML(t, H) : ""}${esc((nm[0] || "?").toUpperCase())}${u === dealerUid ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="av">${turn || (H && H.side && H.side.to === u && !R) ? ringHTML(t, H) : ""}${botSeat(u) ? "🤖" : esc((nm[0] || "?").toUpperCase())}${u === dealerUid ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
         <div class="lbl"><b>${esc(nm)}</b>${status || money ? `<small class="num">${[status, money].filter(Boolean).join(" · ")}</small>` : ""}</div>
       </div>`;
     }).join("");
     let center;
     if (H) {
       const last = H.side ? `${nameOf(H.side.from)} asked ${nameOf(H.side.to)} for a sideshow`
-        : R ? `${R.winners.map(nameOf).join(" & ")} ${R.winners.length > 1 ? "split" : "won"} the pot`
+        : R ? (R.cancelled ? "Hand cancelled by the host" : `${R.winners.map(nameOf).join(" & ")} ${R.winners.length > 1 ? "split" : "won"} the pot`)
         : H.log.length ? `${H.log[H.log.length - 1].who ? H.log[H.log.length - 1].who + " " : ""}${H.log[H.log.length - 1].text}` : "";
       const jc = H.joker ? parseCard(H.joker) : null;
       center = `${jc ? `<div class="jokercard">${cardHTML(jc, false, 0, false)}<span>Joker · every ${rn(jc.r)}</span></div>` : ""}
@@ -1663,6 +1680,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   }
 
   function resultHTML(H, R) {
+    if (R.cancelled) return `<div class="winbanner dealing"><span>Cancelled</span><b>Hand cancelled</b><small>The host cancelled it. Nobody won or lost anything.</small></div>`;
     const lbl = (u) => (R.shown && R.shown[u] ? R.shown[u].label : "");
     const banner = R.hl
       ? `<div class="winbanner"><span>High-Low · ${rupee(R.pot)} pot split · ${esc(R.reason)}</span>
@@ -1688,7 +1706,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
     const key = (H ? H.n : 0) + ":" + (between ? 1 : 0);
     const open = hostOpen && hostOpen.key === key ? hostOpen.open : !!between;
     return `<details class="card hostbox" id="hostbox" ${open ? "open" : ""}>
-      <summary class="cardhead"><b>Dealer controls</b><span>${between ? "Your phone runs the game" : (H && H.kind === "kfo" ? "Round" : "Hand") + " in play · keep this open"}</span></summary>
+      <summary class="cardhead"><b>Table controls</b><span>${between ? (isAdmin() ? "You're the host" : "Anyone seated can deal") : (H && H.kind === "kfo" ? "Round" : "Hand") + " in play"}</span></summary>
       <div class="hostgrid">
         <label for="tpgBoot">Boot<input type="number" inputmode="numeric" id="tpgBoot" value="${st.boot}" min="1" ${between ? "" : "disabled"}></label>
         <label for="tpgBlind">Blind rounds<input type="number" inputmode="numeric" id="tpgBlind" value="${st.blindRounds}" min="0" max="10" ${between ? "" : "disabled"}></label>
@@ -1699,30 +1717,19 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
         <label for="tpgVariant">Variation<select id="tpgVariant" ${between ? "" : "disabled"}>${Object.entries(TP_VARIANTS).map(([k, x]) => `<option value="${k}" ${k === st.variant ? "selected" : ""}>${x.name}</option>`).join("")}<option value="kfo" ${st.variant === "kfo" ? "selected" : ""}>${KFO.name}</option></select></label>
       </div>
       <div class="tpadd">
-        ${between ? `<button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${st.variant === "kfo" ? (!t.kfo || t.kfo.over ? (t.seats.length < 3 ? "Needs 3 players to start" : "Start a new game") : "Deal next round") : H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">${H && H.kind === "kfo" ? "Round" : "Hand"} in play. Keep this screen open.</p>`}
+        ${between ? `<div class="sharegrid"><button class="btn ghost" data-act="tpgcpu" ${t.seats.length >= 17 ? "disabled" : ""}>+ Add CPU player</button><button class="btn ghost" data-act="tpgsolo">Practice vs 3 CPUs</button></div>
+          <button class="btn brass block" data-act="tpgdeal" ${t.seats.length < 2 ? "disabled" : ""}>${st.variant === "kfo" ? (!t.kfo || t.kfo.over ? (t.seats.length < 3 ? "Needs 3 players to start" : "Start a new game") : "Deal next round") : H ? "Deal next hand" : "Deal first hand"}</button>` : `<p class="sheetnote center">${H && H.kind === "kfo" ? "Round" : "Hand"} in play.</p>${isAdmin() ? `<button class="linkbtn danger" data-act="tpgend">${armed === "tpgend" ? "Tap again to cancel this hand (nobody wins or loses)" : "Cancel this hand"}</button>` : ""}`}
         ${st.variant === "kfo" ? `<p class="sheetnote">${KFO.desc} Boot, blind rounds and chaal settings don't apply.</p>` : ""}
-        ${between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
+        ${isAdmin() && between && Object.keys(t.scores || {}).length ? `<button class="linkbtn" data-act="tpgreset">${armed === "tpgreset" ? "Tap again to reset everyone's points" : "Reset points"}</button>` : ""}
+        ${isAdmin() ? `<button class="linkbtn" data-act="tpgclearchat">${armed === "tpgclearchat" ? "Tap again to delete all chat messages" : "Clear chat"}</button>` : ""}
       </div>
     </details>`;
   }
 
   function tpgSetting(id, val) {
-    if (!isDealer()) return;
-    if (!T) T = tpgDefaults();
-    if (T.hand && !T.hand.result) return;
-    const s = T.settings;
-    if (id === "tpgBoot") { const v = Math.round(Number(val)); if (v > 0) s.boot = v; else return; }
-    if (id === "tpgBlind") { const v = Math.round(Number(val)); if (v >= 0 && v <= 10) s.blindRounds = v; else return; }
-    if (id === "tpgLimit") { const v = Math.round(Number(val)) || 0; s.potLimit = Math.max(0, v); }
-    if (id === "tpgMax") {
-      const v = Math.max(0, Math.round(Number(val)) || 0);
-      if (v && v < s.boot * 2) { toast(`Max chaal has to be at least ${rupee(s.boot * 2)} (twice the boot)`); render(); return; }
-      s.maxChaal = v;
-    }
-    if (id === "tpgQuiet") s.quietRounds = Math.max(0, Math.round(Number(val)) || 0);
-    if (id === "tpgTimer") s.turnSecs = Math.max(0, Math.round(Number(val)) || 0);
-    if (id === "tpgVariant") s.variant = val;
-    commitT();
+    const key = { tpgBoot: "boot", tpgBlind: "blindRounds", tpgLimit: "potLimit", tpgMax: "maxChaal", tpgQuiet: "quietRounds", tpgTimer: "turnSecs", tpgVariant: "variant" }[id];
+    if (!key) return;
+    callTpg("settings", { key, value: key === "variant" ? val : Math.max(0, Math.round(Number(val)) || 0) }).then(() => render());
   }
 
   // ---------- King Fuck Off (online, host phone deals) ----------
@@ -1868,14 +1875,14 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
       const status = !inRound ? (lives ? "Next round" : "Out") : R ? (lost ? "Lost a life" : "Safe") : H.acted[u] ? { stay: "Stayed", swap: "Swapped", blocked: "Blocked", draw: "Drew" }[H.acted[u]] : "";
       return `<div class="seat ${turn ? "turn" : ""} ${!lives || !inRound ? "out" : ""} ${R && R.winner === u ? "won" : ""} ${user && u === user.uid ? "me" : ""}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">
         <div class="minis">${inRound ? (card ? miniCard(parseCard(card)) : `<span class="mc back"></span>`) : ""}</div>
-        <div class="av">${turn ? ringHTML(t, H) : ""}${esc((nameOf(u)[0] || "?").toUpperCase())}${u === H.dealer ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
+        <div class="av">${turn ? ringHTML(t, H) : ""}${botSeat(u) ? "🤖" : esc((nameOf(u)[0] || "?").toUpperCase())}${u === H.dealer ? `<i class="dpuck" title="Dealer">D</i>` : ""}</div>
         <div class="lbl"><b>${esc(nameOf(u))}</b><small class="hearts ${lost ? "hit" : ""}">${hearts(lives)}${status ? " · " + status : ""}</small></div>
       </div>`;
     }).join("");
     const last = H.log.length ? H.log[H.log.length - 1] : null;
     const center = `<span class="k">King Fuck Off</span><b class="kfoRound num">Round ${H.round}</b>
       ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
-      ${R ? `<span class="turnline">${R.winner ? esc(nameOf(R.winner)) + " wins the game!" : esc(nameOf(R.loser)) + " loses a life"}</span>` : ""}
+      ${R ? `<span class="turnline">${R.cancelled ? "Round cancelled" : R.winner ? esc(nameOf(R.winner)) + " wins the game!" : esc(nameOf(R.loser)) + " loses a life"}</span>` : ""}
       ${last ? `<em>${last.who ? esc(last.who) + " " : ""}${esc(last.text)}</em>` : ""}`;
     return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="King Fuck Off table with ${n} players">
       <div class="rail"></div><div class="center">${center}</div>${bets}${seatHTML}${fxLayer(pos)}${tableTools()}</div>`;
@@ -1909,6 +1916,7 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
 
   function kfoResultHTML(t, H) {
     const R = H.result, K = t.kfo || { lives: {} };
+    if (R.cancelled) return `<div class="winbanner dealing"><span>Cancelled</span><b>Hand cancelled</b><small>The host cancelled it. Nobody won or lost anything.</small></div>`;
     const ids = Object.keys(R.final).sort((a, b) => kfoRank(R.final[b]) - kfoRank(R.final[a]));
     let h = `<div class="winbanner"><span>${R.winner ? "Winner · last one standing" : "Round " + H.round}</span>
       <b>${R.winner ? esc(nameOf(R.winner)) : esc(nameOf(R.loser)) + " loses a life"}</b>
@@ -1967,7 +1975,15 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   // Other phones correct for clock difference using the gap between the dealer's write time and arrival.
   const turnSecsOf = (st) => (st && st.turnSecs != null ? Number(st.turnSecs) : 30);
   let clockSkew = 0, skewSeen = false;
+  // The table doc's first snapshot can be minutes old, so it says nothing about clock difference: skip it.
+  // Best source: the server clock that comes back with every call (stampSkew).
+  let skewFirst = true;
+  function stampSkew(t0, res) {
+    const sn = res && res.data && res.data.now;
+    if (sn) { clockSkew = (t0 + Date.now()) / 2 - sn; skewSeen = true; }
+  }
   function noteSkew(r) {
+    if (skewFirst) { skewFirst = false; return; }
     if (!r || !r.updatedAt || isDealer()) { if (isDealer()) clockSkew = 0; return; }
     const est = Date.now() - r.updatedAt;
     if (!skewSeen || est < clockSkew) { clockSkew = est; skewSeen = true; }
@@ -1982,21 +1998,21 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
   }
   const ringHTML = (t, H) => (turnSecsOf(t.settings) && H && H.turnAt
     ? `<svg class="ring" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" pathLength="100"></circle></svg>` : "");
-  // the dealer acts for anyone whose time runs out: Pack in Teen Patti, Decline for a sideshow, Stay in King Fuck Off
+  // Nudge the server dealer: when a CPU is to act, or a player's timer has run out, any phone at the table asks the
+  // server to move things on. The server checks the time itself, so early or duplicate nudges do nothing.
+  let lastNudge = 0;
   setInterval(() => {
-    if (!isDealer() || !T || !T.hand || T.hand.result) return;
-    const secs = turnSecsOf(T.settings); if (!secs) return;
+    if (!user || !T || !T.hand || T.hand.result || document.hidden) return;
     const H = T.hand, who = whoActs(H); if (!who) return;
-    if (!H.turnAt) { H.turnAt = Date.now(); return; }
-    if (Date.now() - H.turnAt < secs * 1000 + 800) return;
-    const type = H.kind === "kfo" ? "stay" : H.side ? "sideno" : "pack";
-    const before = turnKey();
-    tpgLog(who, "ran out of time");
-    applyMove(who, { type, n: H.n });
-    stampTurn(before);
-    if (T.hand.turnAt === H.turnAt && !T.hand.result) T.hand.turnAt = Date.now();   // never loop on the same player
-    commitT();
-  }, 1000);
+    if (!T.seats.some((x) => x.uid === user.uid) && !isAdmin()) return;
+    const el = Date.now() - clockSkew - (H.turnAt || 0);
+    const secs = turnSecsOf(T.settings);
+    const due = botSeat(who) ? el > 1300 : !!secs && el > secs * 1000 + 1200;
+    if (!due || Date.now() < lastNudge) return;
+    lastNudge = Date.now() + 2200 + Math.random() * 900;     // spread the phones out
+    const t0 = Date.now();
+    fnTpg({ action: "tick" }).then((r) => stampSkew(t0, r)).catch(() => {});
+  }, 500);
   // countdown ring and numbers update in place, without redrawing the table
   let lastTickSec = null;
   setInterval(() => {
@@ -2673,9 +2689,18 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
     else if (act === "tpgsideno") sendMove("sideno");
     else if (act === "tpgleave") sendMove("leave");
     else if (act === "tpgpack") { if (armed !== "tpgpack") return arm("tpgpack"); armed = null; sendMove("pack"); }
-    else if (act === "tpgdeal") { if (!isDealer()) return; const err = startHand(); if (err) toast(err); else { keepAwake(); commitT(); } }
-    else if (act === "tpgreset") { if (armed !== "tpgreset") return arm("tpgreset"); armed = null; if (isDealer() && T) { T.scores = {}; T.seats.forEach((x) => { T.scores[x.uid] = 0; }); commitT(); toast("Points reset"); } }
-    else if (act === "tpgkick") { if (isDealer() && T) { T.seats = T.seats.filter((x) => x.uid !== id); commitT(); } }
+    else if (act === "tpgdeal") callTpg("deal");
+    else if (act === "tpgcpu") callTpg("addcpu");
+    else if (act === "tpgsolo") {
+      if (!T || !T.seats.some((x) => x.uid === user.uid)) { toast("Sit down first, then add CPUs"); return; }
+      const bots = T.seats.filter((x) => x.bot).length;
+      for (let k = bots; k < 3; k++) await callTpg("addcpu");
+      toast("3 CPU players are at the table. Tap Deal.");
+    }
+    else if (act === "tpgreset") { if (armed !== "tpgreset") return arm("tpgreset"); armed = null; callTpg("reset").then((r) => r && toast("Points reset")); }
+    else if (act === "tpgend") { if (armed !== "tpgend") return arm("tpgend"); armed = null; callTpg("endhand"); }
+    else if (act === "tpgclearchat") { if (armed !== "tpgclearchat") return arm("tpgclearchat"); armed = null; callTpg("clearchat").then((r) => r && toast("Chat cleared")); }
+    else if (act === "tpgkick") callTpg(botSeat(id) ? "removecpu" : "kick", { uid: id });
     else if (act === "tpskip") { if (TP) revealAt[TP.n] = -Infinity; render(); }
     else if (act === "tpdeal") deal();
     else if (act === "tprm") lobbyRemove(id);
