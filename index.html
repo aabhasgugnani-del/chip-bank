@@ -598,6 +598,26 @@ details.hostbox:not([open]) > summary { border-bottom: 0; }
 body.playmode .myhand .tpcards.big .pc { width: 40px; height: 56px; }
 body.playmode .myhand .tpcards.big .pc i { font-size: 19px; margin-top: 7px; }
 body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-space: normal; line-height: 1.15; overflow: visible; text-overflow: clip; }
+/* ---- winning cards in the middle of the table ---- */
+.felt .center .wincards { display: flex; gap: 6px; justify-content: center; margin: 6px 0 4px; perspective: 600px; }
+.felt .center .wincards .pc { width: 44px; height: 62px; animation: winflip .55s cubic-bezier(.2, .8, .3, 1.2) both; animation-delay: calc(var(--d) * 160ms + 150ms + var(--t, 0ms));
+  box-shadow: 0 0 0 2px #f8c94c, 0 8px 18px rgba(0,0,0,.45); }
+.felt .center .wincards .pc.unused { box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.felt .center .wincards .pc b { font-size: 14px; top: 3px; left: 4px; color: inherit; font-family: var(--font-display); line-height: 1; }
+.felt .center .wincards .pc i { font-size: 21px; margin-top: 7px; }
+.felt .center .wincards .pc em { font-size: 7px; bottom: -7px; padding: 1px 4px; }
+@keyframes winflip { from { opacity: 0; transform: rotateY(90deg) translateY(-12px) scale(.75); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .felt .center .wincards .pc { animation: none; } }
+.felt .center b.wname { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1.1; color: #fff; text-wrap: balance; }
+.felt .center b.wname .hl { font-style: normal; font-size: 10px; letter-spacing: .14em; vertical-align: 4px; color: #7ef0b8; }
+.felt .center .wlabel { color: #f8c94c; font-weight: 800; font-size: 13px; }
+.felt .center .wquiet { opacity: .8; font-size: 12px; }
+.felt .center .wlow { font-size: 12px; opacity: .9; }
+.felt .center .wlow b { font-size: 12px; color: #fff; font-family: var(--font-body); }
+.felt .center .potwon { margin-top: 4px; background: rgba(0,0,0,.4); color: #7ef0b8; font-weight: 800; font-size: 13px; border-radius: 999px; padding: 3px 12px; }
+.felt.showdown .rail { box-shadow: inset 0 0 0 3px #c9a24a, inset 0 0 60px rgba(0,0,0,.55), 0 0 0 3px #c9a24a, 0 0 0 7px #2a170a, 0 0 40px rgba(248, 201, 76, .25), 0 22px 50px rgba(0,0,0,.55); }
+.felt.showdown:not(.kfo) .seat:not(.won) { opacity: .55; }
+body.playmode .myhand.rest { position: static; box-shadow: none; }
 </style>
 </head>
 <body>
@@ -657,7 +677,7 @@ body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v3.0.0";
+  const APP_VERSION = "v3.1.0";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -1622,10 +1642,39 @@ body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-
         ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
         ${last ? `<em>${esc(last)}</em>` : ""}`;
     } else {
-      center = `<b class="lobby">${n} seated</b><small>${isDealer() ? (n < 2 ? "Waiting for players to sit down" : "Deal when everyone is in") : "Waiting for the host to deal"}</small>`;
+      center = `<b class="lobby">${n} seated</b><small>${n < 2 ? "Waiting for players to sit down" : "Anyone seated can deal"}</small>`;
     }
-    return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="Card table with ${n} players">
+    if (H && R && !R.cancelled) center = winnerCenter(H, R);
+    return `<div class="felt ${n > 9 ? "crowd" : ""} ${R && !R.cancelled ? "showdown" : ""}" role="img" aria-label="Card table with ${n} players">
       <div class="rail"></div><div class="center">${center}</div>${bets}${seatHTML}${fxLayer(pos)}${tableTools()}</div>`;
+  }
+
+  // End of a hand: the winning cards flip face up in the middle of the table, one by one.
+  // The flip remembers when it started (FX.payout) so redraws don't replay it.
+  function flipCards(cards, wild, used) {
+    const since = FX.payout ? Date.now() - FX.payout.at : 99999;
+    return `<div class="wincards" style="--t:-${since}ms">${cards.map((c, k) => cardHTML(c, wild ? wild[k] : false, k, false, used && !used[k] ? "unused" : "")).join("")}</div>`;
+  }
+  function winnerCenter(H, R) {
+    const names = (list) => list.map((u) => esc(nameOf(u))).join(" & ");
+    const high = R.hl ? R.hl.high : R.winners;
+    const w = high[0], s = R.shown && R.shown[w];
+    const ev = s ? handEval(s.cards, H.variant, H.joker) : null;
+    const title = R.hl ? "High-Low" : R.winners.length > 1 ? "Split pot" : "Winner";
+    return `<span class="k">${title}</span>
+      <b class="wname">${names(high)}${R.hl ? ` <i class="hl">High</i>` : ""}</b>
+      ${s ? flipCards(s.cards.map(parseCard), ev.wild, ev.used) + `<small class="wlabel">${esc(s.label)}</small>`
+          : `<small class="wquiet">Won without a show. Cards stay hidden.</small>`}
+      ${R.hl ? `<small class="wlow">Low: <b>${names(R.hl.low)}</b>${R.shown && R.shown[R.hl.low[0]] ? " · " + esc(R.shown[R.hl.low[0]].label) : ""}</small>` : ""}
+      <span class="potwon num">${R.winners.length > 1 || R.hl ? "Split " : "Won "}${rupee(R.pot)}</span>`;
+  }
+  function kfoCenter(H, R) {
+    const who = R.winner || R.loser;
+    const card = R.final[who];
+    return `<span class="k">${R.winner ? "Last one standing" : "Lowest card"}</span>
+      <b class="wname">${esc(nameOf(who))}</b>
+      ${card ? flipCards([parseCard(card)]) : ""}
+      <small class="wlabel">${R.winner ? "wins the game!" : R.eliminated ? "is out of the game" : "loses a life"}</small>`;
   }
 
   function myArea(t, H) {
@@ -1637,7 +1686,7 @@ body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-
     const per = cardsPer(H.variant);
     const openCard = H.open && H.open[user.uid] ? parseCard(H.open[user.uid]) : null;
     const busy = myPending ? "disabled" : "";
-    let h = `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""}">
+    let h = `<div class="card myhand ${H.turn === user.uid && !R ? "myturn" : ""} ${R || p.out ? "rest" : ""}">
       <div class="cardhead"><b>Your cards</b><span>${mine ? esc(labelOf(myHand.cards, H.variant, H.joker)) : p.out ? "Packed" : "Blind"}</span></div>
       <div class="tpcards big">${mine ? mine.map((c, k) => cardHTML(c, wild[k], 0, false, ev.used[k] ? "" : "unused")).join("")
         : (openCard ? cardHTML(openCard, false, 0, false) : backHTML()) + backHTML().repeat(per - 1)}
@@ -1880,11 +1929,11 @@ body.playmode .myhand .tpgacts .btn { padding: 10px 4px; font-size: 14px; white-
       </div>`;
     }).join("");
     const last = H.log.length ? H.log[H.log.length - 1] : null;
-    const center = `<span class="k">King Fuck Off</span><b class="kfoRound num">Round ${H.round}</b>
+    const center = R && !R.cancelled ? kfoCenter(H, R) : `<span class="k">King Fuck Off</span><b class="kfoRound num">Round ${H.round}</b>
       ${!R && H.turn ? `<span class="turnline">${user && H.turn === user.uid ? "Your turn" : esc(nameOf(H.turn)) + "'s turn"}</span>` : ""}
       ${R ? `<span class="turnline">${R.cancelled ? "Round cancelled" : R.winner ? esc(nameOf(R.winner)) + " wins the game!" : esc(nameOf(R.loser)) + " loses a life"}</span>` : ""}
       ${last ? `<em>${last.who ? esc(last.who) + " " : ""}${esc(last.text)}</em>` : ""}`;
-    return `<div class="felt ${n > 9 ? "crowd" : ""}" role="img" aria-label="King Fuck Off table with ${n} players">
+    return `<div class="felt ${n > 9 ? "crowd" : ""} ${R && !R.cancelled ? "showdown kfo" : ""}" role="img" aria-label="King Fuck Off table with ${n} players">
       <div class="rail"></div><div class="center">${center}</div>${bets}${seatHTML}${fxLayer(pos)}${tableTools()}</div>`;
   }
 
