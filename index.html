@@ -694,7 +694,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   // ---------- firebase ----------
   // Anyone with the link reads chipbank/state live. Only the host emails below can write
   // (enforced by Firestore rules, not just this list).
-  const APP_VERSION = "v3.2.0";
+  const APP_VERSION = "v3.2.1";
   const HOSTS = ["aabhas@naaritive.com", "aabhas.gugnani@gmail.com"];
   firebase.initializeApp({
     apiKey: "AIzaSyCzKgn6bMkKvkO-sFHJQzjoUDYxpaidYc0",
@@ -757,6 +757,40 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
   }
   function setSync(t) { syncMsg = t; footer(); }
 
+  // Finished games wait on this phone until Firestore has them. A game ended while offline (or before
+  // sign-in finished) used to be lost, because the history write was tried only once.
+  const HQ_KEY = "chipbank.histQueue.v1";
+  let histQueue = [];
+  try { histQueue = JSON.parse(localStorage.getItem(HQ_KEY) || "[]"); } catch (e) {}
+  function saveHistQueue() { try { localStorage.setItem(HQ_KEY, JSON.stringify(histQueue)); } catch (e) {} }
+  const mergeGames = (a, b) => {
+    const m = new Map();
+    a.concat(b).forEach((g) => m.set(g.id, g));
+    return [...m.values()].sort((x, y) => (y.endedAt || 0) - (x.endedAt || 0)).slice(0, 30);
+  };
+  const shownHistory = () => mergeGames(history, histQueue);
+  let histBusy = false;
+  async function pushHistory(loud) {
+    if (histBusy || !histQueue.length || !user || !HOSTS.includes(user.email)) return;
+    histBusy = true;
+    const batch = histQueue.slice();
+    try {
+      // Merge into what the server holds, so a phone with a stale list never drops other games.
+      await fs.runTransaction(async (tx) => {
+        const snap = await tx.get(HIST);
+        const games = snap.exists ? (snap.data().games || []) : [];
+        tx.set(HIST, { games: JSON.parse(JSON.stringify(mergeGames(games, batch))) });
+      });
+      const done = new Set(batch.map((g) => g.id));
+      histQueue = histQueue.filter((g) => !done.has(g.id));
+      saveHistQueue();
+    } catch (e) {
+      if (loud) toast("Game kept on this phone. It goes to Past games once you're back online.");
+    }
+    histBusy = false;
+    render();
+  }
+
   function footer() {
     const el = $("#foot"); if (!el) return;
     let h = "";
@@ -803,6 +837,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
       if (next !== mode) { mode = next; render(); }
       else footer();
       reconcile();
+      pushHistory();
       tpgAuth(u);
     });
     STATE.onSnapshot(onState, () => { if (mode !== "owner") { F = F || { game: null, at: 0 }; render(); } else setSync("Offline, saved on this phone"); });
@@ -859,7 +894,8 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     checkVersion();
     fs.disableNetwork().then(() => fs.enableNetwork()).then(() => refreshNow(), () => refreshNow());
   });
-  window.addEventListener("online", () => refreshNow());
+  window.addEventListener("online", () => { refreshNow(); pushHistory(); });
+  setInterval(() => { if (histQueue.length && document.visibilityState === "visible") pushHistory(); }, 20000);
   setInterval(() => {
     if (document.visibilityState === "visible" && Date.now() - lastHeard > 18000) refreshNow(true);
   }, 20000);
@@ -2469,8 +2505,9 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
       id: S.game.id, startedAt: S.game.startedAt, endedAt: Date.now(),
       players: c.rows.map((r) => ({ name: r.p.name, taken: r.taken, paid: r.paid, chips: r.chips, settle: r.settle })),
     };
-    history = [record].concat(history.filter((g) => g.id !== record.id)).slice(0, 30);
-    HIST.set({ games: history }).catch(() => toast("Couldn't save this game to history. Check your connection."));
+    histQueue = histQueue.filter((g) => g.id !== record.id).concat([record]);
+    saveHistQueue();
+    pushHistory(true);
     S.game = newGame();
     tab = "table"; openLedger = null;
     save(); render();
@@ -2593,7 +2630,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
       <label class="settings" for="buyInSetting">Opening buy-in for new players
         <input type="number" inputmode="numeric" id="buyInSetting" value="${S.settings.buyIn}" min="0" step="50">
       </label>`;
-    h += historyHTML(history);
+    h += historyHTML(shownHistory());
     return h + `</section>`;
   }
 
@@ -2674,7 +2711,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     if (!F) return live + `<section><div class="empty"><strong>Connecting…</strong>Loading tonight's game.</div></section>`;
     const g = F.game;
     if (!g || !g.players.length) {
-      return live + `<section><div class="empty"><strong>No game running right now</strong>This page fills in on its own once players buy in.</div>${historyHTML(history)}</section>`;
+      return live + `<section><div class="empty"><strong>No game running right now</strong>This page fills in on its own once players buy in.</div>${historyHTML(shownHistory())}</section>`;
     }
     const c = calc(g);
     const entries = g.players.reduce((a, p) => a + p.ins.length, 0);
@@ -2721,7 +2758,7 @@ body.playmode .myhand.rest { position: static; box-shadow: none; }
     }
     h += `</div>`;
     if (!final) h += `<p class="asof center">Final pays and gets show here once the host counts everyone's chips.</p>`;
-    if (VIEW !== "display") h += historyHTML(history);
+    if (VIEW !== "display") h += historyHTML(shownHistory());
     return `<section class="livesec">${h}</section>`;
   }
 
